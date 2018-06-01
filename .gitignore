@@ -1,0 +1,9 @@
+.idea
+.vscode
+*.exe
+*.exe~
+build
+
+
+state.yml
+leaks.json
