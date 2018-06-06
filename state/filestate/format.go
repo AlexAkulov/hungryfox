@@ -4,6 +4,7 @@ import "time"
 
 type RepoJSON struct {
 	RepoURL    string   `yaml:"url"`
+	CloneURL   string   `yaml:"clone_url"`
 	RepoPath   string   `yaml:"repo_path"`
 	DataPath   string   `yaml:"data_path"`
 	Refs       []string `yaml:"refs"`

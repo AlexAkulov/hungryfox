@@ -22,13 +22,13 @@ func (c *Client) connect() {
 	}
 }
 
-func (c *Client) FetchOrgRepos(orgName string) ([]hungryfox.Repo, error) {
+func (c *Client) FetchOrgRepos(orgName string) ([]hungryfox.RepoLocation, error) {
 	opts := &github.RepositoryListByOrgOptions{
 		ListOptions: github.ListOptions{PerPage: 10},
 	}
 	c.connect()
 	ctx := context.Background()
-	var repoList []hungryfox.Repo
+	var repoList []hungryfox.RepoLocation
 
 	for {
 		repo, resp, err := c.client.Repositories.ListByOrg(ctx, orgName, opts)
@@ -44,13 +44,13 @@ func (c *Client) FetchOrgRepos(orgName string) ([]hungryfox.Repo, error) {
 	return repoList, nil
 }
 
-func (c *Client) FetchUserRepos(userName string) ([]hungryfox.Repo, error) {
+func (c *Client) FetchUserRepos(userName string) ([]hungryfox.RepoLocation, error) {
 	opts := &github.RepositoryListOptions{
 		ListOptions: github.ListOptions{PerPage: 10},
 	}
 	c.connect()
 	ctx := context.Background()
-	var repoList []hungryfox.Repo
+	var repoList []hungryfox.RepoLocation
 	for {
 		repo, resp, err := c.client.Repositories.List(ctx, userName, opts)
 		if err != nil {
@@ -65,14 +65,13 @@ func (c *Client) FetchUserRepos(userName string) ([]hungryfox.Repo, error) {
 	return repoList, nil
 }
 
-func (c *Client) convertRepoList(list []*github.Repository) (hfRepoList []hungryfox.Repo) {
+func (c *Client) convertRepoList(list []*github.Repository) (hfRepoList []hungryfox.RepoLocation) {
 	for _, repo := range list {
-		hfRepoList = append(hfRepoList, hungryfox.Repo{
-			Location: hungryfox.RepoLocation{
-				URL:      *repo.URL,
-				DataPath: c.WorkDir,
-				RepoPath: *repo.FullName,
-			},
+		hfRepoList = append(hfRepoList, hungryfox.RepoLocation{
+			URL:      *repo.HTMLURL,
+			CloneURL: *repo.CloneURL,
+			DataPath: c.WorkDir,
+			RepoPath: *repo.FullName,
 		})
 	}
 	return

@@ -19,6 +19,7 @@ type RepoOptions struct {
 }
 
 type RepoLocation struct {
+	CloneURL string
 	URL      string
 	DataPath string
 	RepoPath string

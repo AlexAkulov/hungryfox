@@ -70,6 +70,7 @@ func convertToRawData(stateStruct map[string]hungryfox.Repo) ([]byte, error) {
 	for _, r := range stateStruct {
 		fileStruct = append(fileStruct, RepoJSON{
 			RepoURL:  r.Location.URL,
+			CloneURL: r.Location.CloneURL,
 			RepoPath: r.Location.RepoPath,
 			DataPath: r.Location.DataPath,
 			Refs:     r.State.Refs,
@@ -93,6 +94,7 @@ func converFromRawData(rawData []byte) (map[string]hungryfox.Repo, error) {
 		result[r.RepoURL] = hungryfox.Repo{
 			Location: hungryfox.RepoLocation{
 				URL:      r.RepoURL,
+				CloneURL: r.CloneURL,
 				DataPath: r.DataPath,
 				RepoPath: r.RepoPath,
 			},

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
@@ -21,12 +22,13 @@ type Repo struct {
 	HistoryPastLimit time.Time
 	DataPath         string
 	RepoPath         string
+	CloneURL         string
 	URL              string
-
-	repository     *git.Repository
-	scannedHash    map[string]struct{}
-	commitsTotal   int
-	commitsScanned int
+	AllowUpdate      bool
+	repository       *git.Repository
+	scannedHash      map[string]struct{}
+	commitsTotal     int
+	commitsScanned   int
 }
 
 func (r *Repo) GetProgress() int {
@@ -51,11 +53,10 @@ func (r *Repo) SetRefs(refs []string) {
 
 func (r *Repo) GetRefs() (refsMap []string) {
 	refsMap = []string{}
-	if r.repository == nil {
-		if err := r.Open(); err != nil {
-			return
-		}
+	if err := r.open(); err != nil {
+		return
 	}
+
 	refs, err := r.repository.References()
 	if err != nil {
 		return
@@ -138,9 +139,11 @@ func (r *Repo) getRevList() (result []*object.Commit, err error) {
 	return result, nil
 }
 
-func (r *Repo) Open() error {
+func (r *Repo) open() error {
 	var err error
-	r.repository, err = git.PlainOpen(r.fullRepoPath())
+	if r.repository == nil {
+		r.repository, err = git.PlainOpen(r.fullRepoPath())
+	}
 	return err
 }
 
@@ -233,5 +236,43 @@ func (r *Repo) getCommitChanges(commit *object.Commit) error {
 			}
 		}
 	}
+	return nil
+}
+
+func (r *Repo) fullRepoPath() string {
+	return filepath.Join(r.DataPath, r.RepoPath)
+}
+
+func (r *Repo) Open() error {
+	if !r.AllowUpdate {
+		fmt.Println("No Update")
+		return r.open()
+	}
+	fmt.Println("Update")
+	if _, err := os.Stat(r.fullRepoPath()); os.IsNotExist(err) {
+		if err := os.MkdirAll(r.fullRepoPath(), 755); err != nil {
+			return err
+		}
+		cloneOptions := &git.CloneOptions{
+			URL:        r.CloneURL,
+			NoCheckout: true,
+		}
+		repository, err := git.PlainClone(r.fullRepoPath(), false, cloneOptions)
+
+		if err != nil {
+			return err
+		}
+		r.repository = repository
+		return nil
+	}
+
+	if err := r.open(); err != nil {
+		return err
+	}
+
+	if err := r.repository.Fetch(&git.FetchOptions{Force: true}); err != nil && err != git.NoErrAlreadyUpToDate {
+		return err
+	}
+
 	return nil
 }

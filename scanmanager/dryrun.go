@@ -14,10 +14,15 @@ func (sm *ScanManager) DryRun() {
 			return
 		}
 		if err := sm.getState(r); err != nil {
-			sm.Log.Error().Str("error", err.Error()).Str("data_path", r.Location.DataPath).Str("repo_path", r.Location.RepoPath).Msg("can't open repo")
+			sm.Log.Error().Str("error", err.Error()).
+				Str("data_path", r.Location.DataPath).
+				Str("repo_path", r.Location.RepoPath).
+				Str("clone_url", r.Location.CloneURL).
+				Bool("AllowUpdate", r.Options.AllowUpdate).
+				Msg("can't open repo")
 			continue
 		}
-		sm.Log.Debug().Int("index", i).Int("total", total).Str("data_path", r.Location.DataPath).Str("repo_path", r.Location.RepoPath).Msg("ok")
+		sm.Log.Debug().Int("index", i+1).Int("total", total).Str("data_path", r.Location.DataPath).Str("repo_path", r.Location.RepoPath).Msg("ok")
 	}
 }
 
@@ -28,6 +33,8 @@ func (sm *ScanManager) getState(r *hungryfox.Repo) error {
 		DataPath:         r.Location.DataPath,
 		RepoPath:         r.Location.RepoPath,
 		URL:              r.Location.URL,
+		CloneURL:         r.Location.CloneURL,
+		AllowUpdate:      r.Options.AllowUpdate,
 	}
 	if err := r.Repo.Open(); err != nil {
 		return err

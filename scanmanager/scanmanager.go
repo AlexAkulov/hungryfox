@@ -122,10 +122,12 @@ func (sm *ScanManager) ScanRepo(index int) {
 		DataPath:         r.Location.DataPath,
 		RepoPath:         r.Location.RepoPath,
 		URL:              r.Location.URL,
+		CloneURL:         r.Location.CloneURL,
+		AllowUpdate:      r.Options.AllowUpdate,
 	}
 	r.Repo.SetRefs(r.State.Refs)
 	startScan := time.Now().UTC()
-	err := openScanClose(r.Repo)
+	err := openScanClose(*r)
 	r.State.Refs = r.Repo.GetRefs()
 	newR := hungryfox.Repo{
 		Location: r.Location,
@@ -147,44 +149,10 @@ func (sm *ScanManager) ScanRepo(index int) {
 	return
 }
 
-func openScanClose(r hungryfox.IRepo) error {
-	if err := r.Open(); err != nil {
+func openScanClose(r hungryfox.Repo) error {
+	if err := r.Repo.Open(); err != nil {
 		return err
 	}
-	defer r.Close()
-	return r.Scan()
+	defer r.Repo.Close()
+	return r.Repo.Scan()
 }
-
-// InspectPath - open exist git repository and fing leaks
-// func (this *HungryFox) InspectRepo(repoUrl string, dataPath string) error {
-
-// 	repo := &repo.Repo{
-// 		CommitDepth: this.config.Common.CommitsLimit,
-// 		DataPath:    dataPath,
-// 		URL:         "",
-// 		State:       this.State.GetStateByPath(repoUrl),
-// 		LS: &LeakSearcher{
-// 			Config: this.config,
-// 			Log:    this.Log,
-// 		},
-// 		Log: this.Log,
-// 	}
-
-// 	if err := repo.CloneOrUpdate(); err != nil {
-// 		return err
-// 	}
-// 	repo.Scan()
-// 	// this.Log.Info().Str("path", repo.RepoPath()).Str("repo_url", repoUrl).Int("count", repo.GetCommitsCount()).Msg("commits scaned")
-// 	// leaks := repo.GetLeaks()
-// 	// this.Log.Info().Str("path", repo.RepoPath()).Str("repo_url", repoUrl).Int("count", len(leaks)).Msg("leaks found")
-// 	// if err := this.SaveLeaks(leaks); err != nil {
-// 	// 	this.Log.Error().Str("error", err.Error()).Msg("can't save leaks to file")
-// 	// }
-// 	this.State.SetState(repo.State)
-// 	if err := this.State.Save(); err != nil {
-// 		this.Log.Error().Str("error", err.Error()).Msg("can't save state")
-// 		return err
-// 	}
-
-// 	return nil
-// }
