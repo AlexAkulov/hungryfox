@@ -1,39 +1,28 @@
 package scanmanager
 
 import (
-	"sync"
 	"time"
 
 	"github.com/AlexAkulov/hungryfox"
 	"github.com/AlexAkulov/hungryfox/config"
 	"github.com/AlexAkulov/hungryfox/helpers"
 	"github.com/AlexAkulov/hungryfox/hercules"
+	"github.com/AlexAkulov/hungryfox/repolist"
 
 	"github.com/rs/zerolog"
 	"gopkg.in/tomb.v2"
 )
 
-type Scan struct {
-	hungryfox.RepoState
-	hungryfox.RepoID
-	Options struct {
-		CloneAndUpdate bool
-
-	}
-}
-
 // ScanManager -
 type ScanManager struct {
-	DiffChannel chan<- *hungryfox.Diff
-	Log         zerolog.Logger
-	State       hungryfox.IStateManager
+	DiffChannel  chan<- *hungryfox.Diff
+	Log          zerolog.Logger
+	StateManager hungryfox.IStateManager
 
-	config        *config.Config
-	currentRepoID hungryfox.RepoID
-	currentRepo   *repo.Repo
-	tomb          tomb.Tomb
-	scanListSync  sync.RWMutex
-	scanList      map[hungryfox.RepoID]hungryfox.RepoState
+	config      *config.Config
+	tomb        tomb.Tomb
+	currentRepo int
+	repoList    *repolist.RepoList
 }
 
 // SetConfig - update configuration
@@ -43,63 +32,22 @@ func (sm *ScanManager) SetConfig(config *config.Config) {
 	sm.updateScanList()
 }
 
-func (sm *ScanManager) getRepoForScan() hungryfox.RepoID {
-	var rID hungryfox.RepoID
-	lastScan := time.Now().UTC()
-	sm.scanListSync.RLock()
-	defer sm.scanListSync.RUnlock()
-	for id, repoState := range sm.scanList {
-		if repoState.ScanStatus.StartTime.IsZero() {
-			return id
-		}
-		if repoState.ScanStatus.EndTime.Before(lastScan) {
-			rID = id
-			lastScan = repoState.ScanStatus.EndTime
-		}
-	}
-	return rID
-}
-
-func (sm *ScanManager) addRepoToScan(repoID hungryfox.RepoID) {
-	sm.scanListSync.Lock()
-	defer sm.scanListSync.Unlock()
-	if sm.scanList == nil {
-		sm.scanList = make(map[hungryfox.RepoID]hungryfox.RepoState)
-	}
-	repoState := sm.State.GetState(repoID)
-	sm.scanList[repoID] = repoState
-}
-
-func (sm *ScanManager) addReposToScan(repoList []hungryfox.RepoID) {
-	for _, repoID := range repoList {
-		sm.addRepoToScan(repoID)
-	}
-}
-
 // Status - get status for current repo
-func (sm *ScanManager) Status() (*hungryfox.RepoID, *hungryfox.ScanStatus) {
-	if !sm.currentRepoID.IsEmpty() {
-		s := sm.currentRepo.Status()
-		return &sm.currentRepoID, &s.ScanStatus
-	}
-	return nil, nil
+func (sm *ScanManager) Status() *hungryfox.Repo {
+	return sm.repoList.GetRepoByIndex(sm.currentRepo)
 }
 
 func (sm *ScanManager) updateScanList() {
+	if sm.repoList == nil {
+		sm.repoList = &repolist.RepoList{State: sm.StateManager}
+	}
+	sm.repoList.Clear()
 	for _, inspectObject := range sm.config.Inspect {
 		switch inspectObject.Type {
 		case "path":
-			scanPathList, err := expandGlob(inspectObject)
-			if err != nil {
-				sm.Log.Error().Str("error", err.Error()).Msg("can't expand glob")
-				continue
-			}
-			for path := range scanPathList {
-				repoID := getRepoID(path, inspectObject)
-				sm.addRepoToScan(repoID)
-			}
-		// case "github":
-		// 	sm.inspectGithub(inspectObject)
+			sm.inspectRepoPath(inspectObject)
+		case "github":
+			sm.inspectGithub(inspectObject)
 		default:
 			sm.Log.Error().Str("type", inspectObject.Type).Msg("unsupported type")
 		}
@@ -109,6 +57,7 @@ func (sm *ScanManager) updateScanList() {
 // Start - start ScanManager instance
 func (sm *ScanManager) Start(config *config.Config) error {
 	sm.config = config
+	sm.currentRepo = -1
 	sm.updateScanList()
 
 	sm.tomb.Go(func() error {
@@ -137,30 +86,73 @@ func (sm *ScanManager) Stop() error {
 }
 
 func (sm *ScanManager) scanNext() *time.Timer {
-	rID := sm.getRepoForScan()
-	if rID.IsEmpty() {
+	rID := sm.repoList.GetRepoForScan()
+	if rID < 0 {
 		waitTime := time.Duration(time.Minute)
 		sm.Log.Debug().Str("wait", helpers.PrettyDuration(waitTime)).Msg("no repo for scan")
 		return time.NewTimer(waitTime)
 	}
-	sm.currentRepoID = rID
+	sm.currentRepo = rID
 	defer func() {
-		sm.currentRepoID = hungryfox.RepoID{}
-		sm.currentRepo = nil
+		sm.currentRepo = -1
 	}()
-	sm.scanListSync.RLock()
-	repoStatus := sm.scanList[rID]
-	sm.scanListSync.RUnlock()
-	elapsedTime := time.Since(repoStatus.ScanStatus.EndTime)
+	r := sm.repoList.GetRepoByIndex(rID)
+	elapsedTime := time.Since(r.Scan.EndTime)
 	if elapsedTime > sm.config.Common.ScanInterval {
-		sm.Log.Info().Str("data_path", rID.DataPath).Str("repo_path", rID.RepoPath).Msg("start scan")
-		sm.InspectRepoPath(rID)
+		sm.Log.Info().Str("data_path", r.Location.DataPath).Str("repo_path", r.Location.RepoPath).Msg("start scan")
+		sm.ScanRepo(rID)
 		return time.NewTimer(0)
 	}
 	// waitTime := sm.config.Common.ScanInterval - elapsedTime
 	waitTime := time.Minute
 	sm.Log.Info().Str("wait", helpers.PrettyDuration(waitTime)).Msg("wait repo for scan")
 	return time.NewTimer(waitTime)
+}
+
+// ScanRepo - open exist git repository and fing leaks
+func (sm *ScanManager) ScanRepo(index int) {
+	r := sm.repoList.GetRepoByIndex(index)
+	if r == nil {
+		panic("bad index")
+	}
+	sm.Log.Debug().Str("repo_url", r.Location.URL).Int("refs", len(r.State.Refs)).Msg("state loaded")
+	r.Repo = &repo.Repo{
+		DiffChannel:      sm.DiffChannel,
+		HistoryPastLimit: sm.config.Common.HistoryPastLimit,
+		DataPath:         r.Location.DataPath,
+		RepoPath:         r.Location.RepoPath,
+		URL:              r.Location.URL,
+	}
+	r.Repo.SetRefs(r.State.Refs)
+	startScan := time.Now().UTC()
+	err := openScanClose(r.Repo)
+	r.State.Refs = r.Repo.GetRefs()
+	newR := hungryfox.Repo{
+		Location: r.Location,
+		Options:  r.Options,
+		State:    hungryfox.RepoState{Refs: r.Repo.GetRefs()},
+		Scan: hungryfox.ScanStatus{
+			StartTime: startScan,
+			EndTime:   time.Now().UTC(),
+			Success:   err == nil,
+		},
+	}
+	sm.repoList.UpdateRepo(newR)
+
+	if err != nil {
+		sm.Log.Error().Str("data_path", newR.Location.DataPath).Str("repo_path", newR.Location.RepoPath).Str("error", err.Error()).Msg("scan failed")
+	} else {
+		sm.Log.Info().Str("data_path", newR.Location.DataPath).Str("repo_path", newR.Location.RepoPath).Str("duration", helpers.PrettyDuration(time.Since(newR.Scan.StartTime))).Msg("scan completed")
+	}
+	return
+}
+
+func openScanClose(r hungryfox.IRepo) error {
+	if err := r.Open(); err != nil {
+		return err
+	}
+	defer r.Close()
+	return r.Scan()
 }
 
 // InspectPath - open exist git repository and fing leaks

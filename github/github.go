@@ -22,13 +22,13 @@ func (c *Client) connect() {
 	}
 }
 
-func (c *Client) FetchOrgRepos(orgName string) ([]hungryfox.RepoID, error) {
+func (c *Client) FetchOrgRepos(orgName string) ([]hungryfox.Repo, error) {
 	opts := &github.RepositoryListByOrgOptions{
 		ListOptions: github.ListOptions{PerPage: 10},
 	}
 	c.connect()
 	ctx := context.Background()
-	var repoList []hungryfox.RepoID
+	var repoList []hungryfox.Repo
 
 	for {
 		repo, resp, err := c.client.Repositories.ListByOrg(ctx, orgName, opts)
@@ -38,19 +38,19 @@ func (c *Client) FetchOrgRepos(orgName string) ([]hungryfox.RepoID, error) {
 		if resp.NextPage == 0 {
 			break
 		}
-		repoList = append(repoList, c.convertToRepoID(repo)...)
+		repoList = append(repoList, c.convertRepoList(repo)...)
 		opts.Page = resp.NextPage
 	}
 	return repoList, nil
 }
 
-func (c *Client) FetchUserRepos(userName string) ([]hungryfox.RepoID, error) {
+func (c *Client) FetchUserRepos(userName string) ([]hungryfox.Repo, error) {
 	opts := &github.RepositoryListOptions{
 		ListOptions: github.ListOptions{PerPage: 10},
 	}
 	c.connect()
 	ctx := context.Background()
-	var repoList []hungryfox.RepoID
+	var repoList []hungryfox.Repo
 	for {
 		repo, resp, err := c.client.Repositories.List(ctx, userName, opts)
 		if err != nil {
@@ -59,18 +59,20 @@ func (c *Client) FetchUserRepos(userName string) ([]hungryfox.RepoID, error) {
 		if resp.NextPage == 0 {
 			break
 		}
-		repoList = append(repoList, c.convertToRepoID(repo)...)
+		repoList = append(repoList, c.convertRepoList(repo)...)
 		opts.Page = resp.NextPage
 	}
 	return repoList, nil
 }
 
-func (c *Client) convertToRepoID(repoList []*github.Repository) (repoIDList []hungryfox.RepoID) {
-	for _, repo := range repoList {
-		repoIDList = append(repoIDList, hungryfox.RepoID{
-			RepoURL:  *repo.URL,
-			DataPath: c.WorkDir,
-			RepoPath: *repo.FullName,
+func (c *Client) convertRepoList(list []*github.Repository) (hfRepoList []hungryfox.Repo) {
+	for _, repo := range list {
+		hfRepoList = append(hfRepoList, hungryfox.Repo{
+			Location: hungryfox.RepoLocation{
+				URL:      *repo.URL,
+				DataPath: c.WorkDir,
+				RepoPath: *repo.FullName,
+			},
 		})
 	}
 	return

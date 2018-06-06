@@ -16,7 +16,7 @@ import (
 type StateManager struct {
 	Location string
 	sync     sync.RWMutex
-	state    map[hungryfox.RepoID]*hungryfox.RepoState
+	state    map[string]hungryfox.Repo
 	tomb     tomb.Tomb
 }
 
@@ -52,18 +52,61 @@ func (s *StateManager) load() error {
 			return fmt.Errorf("can't create with: %v", err)
 		}
 	}
-	s.state = map[hungryfox.RepoID]*hungryfox.RepoState{}
-	stateYaml, err := ioutil.ReadFile(s.Location)
+
+	stateRaw, err := ioutil.ReadFile(s.Location)
 	if err != nil {
 		return fmt.Errorf("can't open, %v", err)
 	}
 	s.sync.Lock()
 	defer s.sync.Unlock()
-	err = yaml.Unmarshal([]byte(stateYaml), s.state)
-	if err != nil {
+	if s.state, err = converFromRawData(stateRaw); err != nil {
 		return fmt.Errorf("can't parse, %v", err)
 	}
 	return nil
+}
+
+func convertToRawData(stateStruct map[string]hungryfox.Repo) ([]byte, error) {
+	fileStruct := []RepoJSON{}
+	for _, r := range stateStruct {
+		fileStruct = append(fileStruct, RepoJSON{
+			RepoURL:  r.Location.URL,
+			RepoPath: r.Location.RepoPath,
+			DataPath: r.Location.DataPath,
+			Refs:     r.State.Refs,
+			ScanStatus: ScanJSON{
+				StartTime: r.Scan.StartTime,
+				EndTime:   r.Scan.EndTime,
+				Success:   r.Scan.Success,
+			},
+		})
+	}
+	return yaml.Marshal(&fileStruct)
+}
+
+func converFromRawData(rawData []byte) (map[string]hungryfox.Repo, error) {
+	stateJSON := []RepoJSON{}
+	if err := yaml.Unmarshal(rawData, &stateJSON); err != nil {
+		return nil, err
+	}
+	result := map[string]hungryfox.Repo{}
+	for _, r := range stateJSON {
+		result[r.RepoURL] = hungryfox.Repo{
+			Location: hungryfox.RepoLocation{
+				URL:      r.RepoURL,
+				DataPath: r.DataPath,
+				RepoPath: r.RepoPath,
+			},
+			State: hungryfox.RepoState{
+				Refs: r.Refs,
+			},
+			Scan: hungryfox.ScanStatus{
+				StartTime: r.ScanStatus.StartTime,
+				EndTime:   r.ScanStatus.EndTime,
+				Success:   r.ScanStatus.Success,
+			},
+		}
+	}
+	return result, nil
 }
 
 func (s *StateManager) save() error {
@@ -74,27 +117,27 @@ func (s *StateManager) save() error {
 	}
 	s.sync.Lock()
 	defer s.sync.Unlock()
-	stateContent, err := yaml.Marshal(s.state)
+	rawData, err := convertToRawData(s.state)
 	if err != nil {
 		return err
 	}
-	if err := ioutil.WriteFile(s.Location, stateContent, 0644); err != nil {
+	if err := ioutil.WriteFile(s.Location, rawData, 0644); err != nil {
 		return fmt.Errorf("can't save, %v", err)
 	}
 	return nil
 }
 
-func (s StateManager) SetState(repoID hungryfox.RepoID, state hungryfox.RepoState) {
+func (s StateManager) Save(r hungryfox.Repo) {
 	s.sync.Lock()
 	defer s.sync.Unlock()
-	s.state[repoID] = &state
+	s.state[r.Location.URL] = r
 }
 
-func (s StateManager) GetState(id hungryfox.RepoID) hungryfox.RepoState {
+func (s StateManager) Load(url string) (hungryfox.RepoState, hungryfox.ScanStatus) {
 	s.sync.RLock()
 	defer s.sync.RUnlock()
-	if state, ok := s.state[id]; ok {
-		return *state
+	if r, ok := s.state[url]; ok {
+		return r.State, r.Scan
 	}
-	return hungryfox.RepoState{}
+	return hungryfox.RepoState{}, hungryfox.ScanStatus{}
 }

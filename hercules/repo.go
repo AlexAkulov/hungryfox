@@ -23,34 +23,43 @@ type Repo struct {
 	RepoPath         string
 	URL              string
 
-	repository *git.Repository
-	repoState  hungryfox.RepoState
+	repository     *git.Repository
+	scannedHash    map[string]struct{}
+	commitsTotal   int
+	commitsScanned int
 }
 
-func (r *Repo) Close() {
+func (r *Repo) GetProgress() int {
+	if r.commitsTotal > 0 {
+		return (r.commitsScanned / r.commitsTotal) * 1000
+	}
+	return -1
+}
+
+func (r *Repo) Close() error {
 	r.repository = nil // ???
 	runtime.GC()       // ???
+	return nil
 }
 
-func (r *Repo) Status() hungryfox.RepoState {
-	return r.repoState
+func (r *Repo) SetRefs(refs []string) {
+	r.scannedHash = map[string]struct{}{}
+	for _, hash := range refs {
+		r.scannedHash[hash] = struct{}{}
+	}
 }
 
-func (r *Repo) SetOldRefs(refs map[string]string) {
-	r.repoState.Refs = refs
-}
-
-func (r *Repo) GetNewRefs() (refsMap map[string]string) {
-	refsMap = map[string]string{}
+func (r *Repo) GetRefs() (refsMap []string) {
+	refsMap = []string{}
+	if r.repository == nil {
+		if err := r.Open(); err != nil {
+			return
+		}
+	}
 	refs, err := r.repository.References()
 	if err != nil {
 		return
 	}
-	lastCommit := r.getLastCommit()
-	if lastCommit != "" {
-		refsMap["last"] = lastCommit
-	}
-
 	refs.ForEach(func(ref *plumbing.Reference) error {
 		if ref.Hash().IsZero() {
 			return nil
@@ -58,19 +67,19 @@ func (r *Repo) GetNewRefs() (refsMap map[string]string) {
 		if strings.HasPrefix(ref.Name().String(), "refs/keep-around/") {
 			return nil
 		}
-		refsMap[ref.Name().String()] = ref.Hash().String()
+		refsMap = append(refsMap, ref.Hash().String())
 		return nil
 	})
+	lastCommit := r.getLastCommit()
+	if lastCommit != "" {
+		refsMap = append(refsMap, lastCommit)
+	}
 	return
 }
 
 func (r *Repo) isChecked(commitHash string) bool {
-	for _, checkedCommit := range r.repoState.Refs {
-		if commitHash == checkedCommit {
-			return true
-		}
-	}
-	return false
+	_, ok := r.scannedHash[commitHash]
+	return ok
 }
 
 func (r *Repo) getLastCommit() string {
@@ -125,10 +134,7 @@ func (r *Repo) getRevList() (result []*object.Commit, err error) {
 		result = append(result, commit)
 	}
 
-	r.repoState.ScanStatus.CommitsTotal = len(result)
-	if len(hashList) > 0 {
-		r.repoState.Refs["last"] = hashList[0]
-	}
+	r.commitsTotal = len(result)
 	return result, nil
 }
 
@@ -138,36 +144,20 @@ func (r *Repo) Open() error {
 	return err
 }
 
-func (r *Repo) OpenScanClose() error {
-	if err := r.Open(); err != nil {
-		return err
-	}
-	defer r.Close()
-	return r.Scan()
-}
-
-// Scan - start
+// Scan - rt
 func (r *Repo) Scan() error {
-	r.repoState.ScanStatus = hungryfox.ScanStatus{
-		StartTime: time.Now().UTC(),
-		EndTime:   time.Now().UTC(),
-		Success:   false,
-	}
 	commits, err := r.getRevList()
 	if err != nil {
 		return err
 	}
 	for i, commit := range commits {
-		r.repoState.ScanStatus.CommitsScanned = i + 1
+		r.commitsScanned = i + 1
 		if commit.Committer.When.Before(r.HistoryPastLimit) {
 			r.getAllChanges(commit)
 			break
 		}
 		r.getCommitChanges(commit)
 	}
-	r.repoState.ScanStatus.EndTime = time.Now().UTC()
-	r.repoState.ScanStatus.Success = true
-	r.repoState.Refs = r.GetNewRefs()
 	return nil
 }
 

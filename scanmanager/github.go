@@ -27,7 +27,9 @@ func (sm *ScanManager) inspectGithub(inspect *config.Inspect) error {
 			sm.Log.Error().Str("error", err.Error()).Str("organisation", org).Msg("can't fetch repos from github")
 			continue
 		}
-		sm.addReposToScan(repoList)
+		for i := range repoList {
+			sm.repoList.AddRepo(repoList[i])
+		}
 	}
 	for _, user := range inspect.Users {
 		repoList, err := githubClient.FetchUserRepos(user)
@@ -35,15 +37,21 @@ func (sm *ScanManager) inspectGithub(inspect *config.Inspect) error {
 			sm.Log.Error().Str("error", err.Error()).Str("user", user).Msg("can't fetch repos from github")
 			continue
 		}
-		sm.addReposToScan(repoList)
+		for i := range repoList {
+			sm.repoList.AddRepo(repoList[i])
+		}
 	}
 	for _, repo := range inspect.Repos {
-		rID := hungryfox.RepoID{
-			RepoURL:  getGitHubRepoURL(repo),
-			RepoPath: repo,
-			DataPath: inspect.WorkDir,
-		}
-		sm.addRepoToScan(rID)
+		sm.repoList.AddRepo(hungryfox.Repo{
+			Location: hungryfox.RepoLocation{
+				URL:      getGitHubRepoURL(repo),
+				RepoPath: repo,
+				DataPath: inspect.WorkDir,
+			},
+			Options: hungryfox.RepoOptions{
+				AllowUpdate: true,
+			},
+		})
 	}
 	return nil
 }

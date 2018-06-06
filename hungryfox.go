@@ -14,27 +14,32 @@ type Diff struct {
 	TimeStamp   time.Time
 }
 
-type RepoID struct {
-	RepoURL  string `yaml:"repo_url"`
-	DataPath string `yaml:"data_path"`
-	RepoPath string `yaml:"repo_path"`
+type RepoOptions struct {
+	AllowUpdate bool
 }
 
-func (r RepoID) IsEmpty() bool {
-	return r.RepoURL == "" && r.RepoPath == "" && r.DataPath == ""
+type RepoLocation struct {
+	URL      string
+	DataPath string
+	RepoPath string
 }
 
 type RepoState struct {
-	ScanStatus ScanStatus        `yaml:"scan_status"`
-	Refs       map[string]string `yaml:"refs"`
+	Refs     []string
 }
 
 type ScanStatus struct {
-	StartTime      time.Time `yaml:"start_time"`
-	EndTime        time.Time `yaml:"end_time"`
-	CommitsTotal   int       `yaml:"commits_total"`
-	CommitsScanned int       `yaml:"commits_scaned"`
-	Success        bool      `yaml:"success"`
+	StartTime time.Time
+	EndTime   time.Time
+	Success   bool
+}
+
+type Repo struct {
+	Options RepoOptions
+	Location RepoLocation
+	State RepoState
+	Scan ScanStatus
+	Repo IRepo
 }
 
 type IMessageSender interface {
@@ -52,13 +57,16 @@ type ILeakSearcher interface {
 
 type IRepo interface {
 	Open() error
+	Close() error
 	Scan() error
-	Status() *ScanStatus
+	GetProgress() int
+	GetRefs() []string
+	SetRefs([]string)
 }
 
 type IStateManager interface {
-	GetState(RepoID) RepoState
-	SetState(RepoID, RepoState)
+	Load(string) (RepoState, ScanStatus)
+	Save(Repo)
 }
 
 type Leak struct {

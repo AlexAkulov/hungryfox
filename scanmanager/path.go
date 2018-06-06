@@ -5,12 +5,9 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/AlexAkulov/hungryfox"
 	"github.com/AlexAkulov/hungryfox/config"
-	"github.com/AlexAkulov/hungryfox/helpers"
-	"github.com/AlexAkulov/hungryfox/hercules"
 )
 
 func expandGlob(inspect *config.Inspect) (map[string]struct{}, error) {
@@ -49,38 +46,23 @@ func expandGlob(inspect *config.Inspect) (map[string]struct{}, error) {
 	return scanPaths, nil
 }
 
-// InspectRepoPath - open exist git repository and fing leaks
-func (sm *ScanManager) InspectRepoPath(id hungryfox.RepoID) error {
-	sm.currentRepo = &repo.Repo{
-		DiffChannel:      sm.DiffChannel,
-		HistoryPastLimit: sm.config.Common.HistoryPastLimit,
-		DataPath:         id.DataPath,
-		RepoPath:         id.RepoPath,
-		URL:              id.RepoURL,
-	}
-	sm.scanListSync.RLock()
-	state := sm.scanList[id]
-	sm.scanListSync.RUnlock()
-	sm.currentRepo.SetOldRefs(state.Refs)
-	err := sm.currentRepo.OpenScanClose()
-	newState := sm.currentRepo.Status()
-	sm.scanListSync.Lock()
-	sm.scanList[id] = newState
-	sm.scanListSync.Unlock()
-	sm.State.SetState(id, newState)
-
+func (sm *ScanManager) inspectRepoPath(inspectObject *config.Inspect) error {
+	scanPathList, err := expandGlob(inspectObject)
 	if err != nil {
-		sm.Log.Error().Str("data_path", id.DataPath).Str("repo_path", id.RepoPath).Str("error", err.Error()).Msg("scan failed")
-	} else {
-		sm.Log.Info().Str("data_path", id.DataPath).Str("repo_path", id.RepoPath).Int("total", newState.ScanStatus.CommitsTotal).Int("scanned", newState.ScanStatus.CommitsScanned).Str("duration", helpers.PrettyDuration(time.Since(newState.ScanStatus.StartTime))).Msg("scan completed")
+		sm.Log.Error().Str("error", err.Error()).Msg("can't expand glob")
+		return err
 	}
-
-	sm.currentRepo = nil
-	sm.currentRepoID = hungryfox.RepoID{}
-	return err
+	for path := range scanPathList {
+		location := getRepoLocation(path, inspectObject)
+		sm.repoList.AddRepo(hungryfox.Repo{
+			Options:  hungryfox.RepoOptions{AllowUpdate: false},
+			Location: location,
+		})
+	}
+	return nil
 }
 
-func getRepoID(path string, inspectObject *config.Inspect) hungryfox.RepoID {
+func getRepoLocation(path string, inspectObject *config.Inspect) hungryfox.RepoLocation {
 	prefix := strings.Replace(inspectObject.TrimPrefix, "\\", "/", -1)
 	prefix = strings.TrimSuffix(prefix, "/")
 	path = strings.Replace(path, "\\", "/", -1)
@@ -89,9 +71,9 @@ func getRepoID(path string, inspectObject *config.Inspect) hungryfox.RepoID {
 	url := strings.TrimSuffix(inspectObject.URL, "/")
 	url = fmt.Sprintf("%s/%s", url, strings.TrimSuffix(path, ".git"))
 
-	return hungryfox.RepoID{
+	return hungryfox.RepoLocation{
 		DataPath: prefix,
 		RepoPath: path,
-		RepoURL:  url,
+		URL:      url,
 	}
 }

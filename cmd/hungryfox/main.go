@@ -59,7 +59,7 @@ func main() {
 	leakChannel := make(chan *hungryfox.Leak, 1)
 
 	if *skipScan {
-		stateManager := filestate.StateManager{
+		stateManager := &filestate.StateManager{
 			Location: conf.Common.StateFile,
 		}
 		if err := stateManager.Start(); err != nil {
@@ -70,9 +70,9 @@ func main() {
 
 		logger.Debug().Str("service", "scan manager").Msg("start")
 		scanManager := &scanmanager.ScanManager{
-			DiffChannel: diffChannel,
-			Log:         logger,
-			State:       stateManager,
+			DiffChannel:  diffChannel,
+			Log:          logger,
+			StateManager: stateManager,
 		}
 		scanManager.SetConfig(conf)
 		scanManager.DryRun()
@@ -111,7 +111,7 @@ func main() {
 	logger.Debug().Str("service", "leaks searcher").Msg("started")
 
 	logger.Debug().Str("service", "state manager").Msg("start")
-	stateManager := filestate.StateManager{
+	stateManager := &filestate.StateManager{
 		Location: conf.Common.StateFile,
 	}
 	if err := stateManager.Start(); err != nil {
@@ -122,9 +122,9 @@ func main() {
 
 	logger.Debug().Str("service", "scan manager").Msg("start")
 	scanManager := &scanmanager.ScanManager{
-		DiffChannel: diffChannel,
-		Log:         logger,
-		State:       stateManager,
+		DiffChannel:  diffChannel,
+		Log:          logger,
+		StateManager: stateManager,
 	}
 	if err := scanManager.Start(conf); err != nil {
 		logger.Error().Str("service", "scan manager").Str("error", err.Error()).Msg("fail")
@@ -132,14 +132,14 @@ func main() {
 	}
 	logger.Debug().Str("service", "scan manager").Msg("started")
 
-	statusTicker := time.NewTicker(time.Second * 60)
+	statusTicker := time.NewTicker(time.Second * 10)
 	defer statusTicker.Stop()
 	go func() {
 		for range statusTicker.C {
-			r, s := scanManager.Status()
+			r := scanManager.Status()
 			if r != nil {
-				l := leakSearcher.Status(r.RepoURL)
-				logger.Info().Int("total", s.CommitsTotal).Int("scanned", s.CommitsScanned).Int("leaks", l.LeaksFound).Int("leaks_filtred", l.LeaksFiltred).Str("duration", helpers.PrettyDuration(time.Since(s.StartTime))).Str("repo", r.RepoURL).Msg("scan")
+				l := leakSearcher.Status(r.Location.URL)
+				logger.Info().Int("leaks", l.LeaksFound).Int("leaks_filtred", l.LeaksFiltred).Str("duration", helpers.PrettyDuration(time.Since(r.Scan.StartTime))).Str("repo", r.Location.URL).Msg("scan")
 				continue
 			}
 		}
