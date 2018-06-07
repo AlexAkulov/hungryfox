@@ -129,7 +129,8 @@ func (r *Repo) getRevList() (result []*object.Commit, err error) {
 		if err != nil {
 			continue
 		}
-		if commit.NumParents() != 1 {
+		if commit.NumParents() > 1 {
+			// ignore merge commit
 			continue
 		}
 		result = append(result, commit)
@@ -156,7 +157,7 @@ func (r *Repo) Scan() error {
 	for i, commit := range commits {
 		r.commitsScanned = i + 1
 		if commit.Committer.When.Before(r.HistoryPastLimit) {
-			r.getAllChanges(commit)
+			r.getAllChanges(commit, false)
 			break
 		}
 		r.getCommitChanges(commit)
@@ -164,7 +165,7 @@ func (r *Repo) Scan() error {
 	return nil
 }
 
-func (r *Repo) getAllChanges(commit *object.Commit) error {
+func (r *Repo) getAllChanges(commit *object.Commit, initCommit bool) error {
 	tree, err := commit.Tree()
 	if err != nil {
 		return err
@@ -186,6 +187,14 @@ func (r *Repo) getAllChanges(commit *object.Commit) error {
 			if chunk.Type() != diff.Add {
 				continue
 			}
+			// TODO: Use blame for this
+			author := "unknown"
+			authorEmail := "unknown"
+
+			if initCommit {
+				author = commit.Author.Name
+				authorEmail = commit.Author.Email
+			}
 			r.DiffChannel <- &hungryfox.Diff{
 				CommitHash:  commit.Hash.String(),
 				RepoURL:     r.URL,
@@ -193,8 +202,8 @@ func (r *Repo) getAllChanges(commit *object.Commit) error {
 				FilePath:    f.Path(),
 				LineBegin:   0, // TODO: await https://github.com/src-d/go-git/issues/806
 				Content:     chunk.Content(),
-				Author:      "unknown", // TODO: Use blame for this
-				AuthorEmail: "unknown",
+				Author:      author,
+				AuthorEmail: authorEmail,
 				TimeStamp:   commit.Author.When,
 			}
 		}
@@ -208,7 +217,7 @@ func (r *Repo) getCommitChanges(commit *object.Commit) error {
 	}
 	parrentCommit, err := commit.Parent(0)
 	if err != nil {
-		return err
+		return r.getAllChanges(commit, true)
 	}
 	patch, err := parrentCommit.Patch(commit)
 	if err != nil {
@@ -245,10 +254,8 @@ func (r *Repo) fullRepoPath() string {
 
 func (r *Repo) Open() error {
 	if !r.AllowUpdate {
-		fmt.Println("No Update")
 		return r.open()
 	}
-	fmt.Println("Update")
 	if _, err := os.Stat(r.fullRepoPath()); os.IsNotExist(err) {
 		if err := os.MkdirAll(r.fullRepoPath(), 755); err != nil {
 			return err

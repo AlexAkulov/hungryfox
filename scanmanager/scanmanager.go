@@ -103,8 +103,7 @@ func (sm *ScanManager) scanNext() *time.Timer {
 		sm.ScanRepo(rID)
 		return time.NewTimer(0)
 	}
-	// waitTime := sm.config.Common.ScanInterval - elapsedTime
-	waitTime := time.Minute
+	waitTime := sm.config.Common.ScanInterval - elapsedTime
 	sm.Log.Info().Str("wait", helpers.PrettyDuration(waitTime)).Msg("wait repo for scan")
 	return time.NewTimer(waitTime)
 }
@@ -127,6 +126,9 @@ func (sm *ScanManager) ScanRepo(index int) {
 	}
 	r.Repo.SetRefs(r.State.Refs)
 	startScan := time.Now().UTC()
+	r.Scan.StartTime = startScan
+	sm.repoList.UpdateRepo(*r)
+	
 	err := openScanClose(*r)
 	r.State.Refs = r.Repo.GetRefs()
 	newR := hungryfox.Repo{

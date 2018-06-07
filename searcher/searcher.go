@@ -44,14 +44,14 @@ func (s *Searcher) worker() error {
 		case <-s.tomb.Dying():
 			return nil
 		case diff := <-s.DiffChannel:
-			leaks := s.GetLeaks(diff)
+			leaks := s.GetLeaks(*diff)
 			filtredLeaks := 0
 			for _, leak := range leaks {
 				if ok, _ := s.filterLeak(leak); ok {
 					filtredLeaks++
 					continue
 				}
-				s.LeakChannel <- leak
+				s.LeakChannel <- &leak
 			}
 			leaksCount := len(leaks) - filtredLeaks
 			if leaksCount > 0 || filtredLeaks > 0 {
@@ -84,8 +84,8 @@ func (s *Searcher) Status(repoURL string) RepoStats {
 	return RepoStats{}
 }
 
-func (s *Searcher) GetLeaks(diff *hungryfox.Diff) []*hungryfox.Leak {
-	leaks := make([]*hungryfox.Leak, 0)
+func (s *Searcher) GetLeaks(diff hungryfox.Diff) []hungryfox.Leak {
+	leaks := make([]hungryfox.Leak, 0)
 	lines := strings.Split(diff.Content, "\n")
 	for _, line := range lines {
 		for _, pattern := range s.config.Patterns {
@@ -97,7 +97,7 @@ func (s *Searcher) GetLeaks(diff *hungryfox.Diff) []*hungryfox.Leak {
 				if len(line) > 1024 {
 					line = line[:1024]
 				}
-				leak := &hungryfox.Leak{
+				leak := hungryfox.Leak{
 					RepoPath:     diff.RepoPath,
 					FilePath:     diff.FilePath,
 					PatternName:  pattern.Name,
@@ -116,7 +116,7 @@ func (s *Searcher) GetLeaks(diff *hungryfox.Diff) []*hungryfox.Leak {
 	return leaks
 }
 
-func (s *Searcher) filterLeak(leak *hungryfox.Leak) (bool, *config.Pattern) {
+func (s *Searcher) filterLeak(leak hungryfox.Leak) (bool, *config.Pattern) {
 	for _, filter := range s.config.Filters {
 		if filter.FileRe.MatchString(fmt.Sprintf("%s/%s", leak.RepoURL, leak.FilePath)) && filter.ContentRe.MatchString(leak.LeakString) {
 			return true, filter

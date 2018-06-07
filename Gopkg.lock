@@ -227,7 +227,7 @@
     "ssh/agent",
     "ssh/knownhosts"
   ]
-  revision = "ab813273cd59e1333f7ae7bff5d027d4aadf528c"
+  revision = "b47b1587369238182299fe4dad77d05b8b461e06"
 
 [[projects]]
   branch = "master"
@@ -245,13 +245,13 @@
     ".",
     "internal"
   ]
-  revision = "ec22f46f877b4505e0117eeaab541714644fdd28"
+  revision = "1e0a3fa8ba9a5c9eb35c271780101fdaf1b205d7"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["windows"]
-  revision = "c11f84a56e43e20a78cee75a7c034031ecf57d1f"
+  revision = "538ab54ba952cc4c7c705fa213fbf7993c97c175"
 
 [[projects]]
   name = "golang.org/x/text"
