@@ -8,9 +8,9 @@ addons:
       rpm
 install:
   - gem install fpm
+  - npm install -g snyk
 script:
-  - make test_codecov
-  - make build
-  - make rpm
+  - make travis
 after_success:
   - bash <(curl -s https://codecov.io/bash)
+  - snyk test
