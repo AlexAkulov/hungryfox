@@ -1,5 +1,9 @@
 # HungryFox
 
+[![Build Status](https://travis-ci.org/AlexAkulov/hungryfox.svg?branch=master)](https://travis-ci.org/AlexAkulov/hungryfox)
+[![codecov](https://codecov.io/gh/AlexAkulov/hungryfox/branch/master/graph/badge.svg)](https://codecov.io/gh/AlexAkulov/hungryfox)
+[![Known Vulnerabilities](https://snyk.io/test/github/AlexAkulov/hungryfox/badge.svg)](https://snyk.io/test/github/AlexAkulov/hungryfox)
+
 **State: In development now! You probably will get many bugs!**
 
 HungryFox is a software for continious search for leaks of sensative information like passwords, api-keys, private certificates and etc in your repositories.

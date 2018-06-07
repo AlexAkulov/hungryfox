@@ -3,7 +3,7 @@
 *.exe
 *.exe~
 build
-
+coverage.txt
 
 state.yml
 leaks.json

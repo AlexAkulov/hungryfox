@@ -10,11 +10,17 @@ clean:
 test:
 	go test ./...
 
+
+prepare:
+	go get "github.com/smartystreets/goconvey"
+
+test_codecov: prepare
+	go test -race -coverprofile="coverage.txt" ./...
+
 build:
 	mkdir -p build/usr/bin/
 	go build -ldflags "-X main.version=${VERSION}-${RELEASE} -o build/usr/bin/hungryfox ./cmd/hungryfox
 
 rpm:
 	mkdir -p build/etc/hungryfox
-	cp cmd/hungryfox/config.yml build/etc/hungryfox
-	
+	build/usr/bin/hungryfox -default-config > build/etc/hungryfox/config.yml

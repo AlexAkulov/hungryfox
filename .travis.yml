@@ -1,0 +1,16 @@
+language: go
+sudo: false
+go:
+  - 1.10.2
+addons:
+  apt:
+    packages:
+      rpm
+install:
+  - gem install fpm
+script:
+  - make test_codecov
+  - make build
+  - make rpm
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
