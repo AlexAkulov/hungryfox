@@ -19,10 +19,12 @@ deploy:
     username: AlexAkulov
     repository: hungryfox-unstable
     token: $PACKAGECLOUD_TOKEN
-    package_glob: build/hungryfox*.rpm
+    package_glob: build/hungryfox-*.rpm
     dist: centos/7
+    skip_cleanup: true
   - provider: packagecloud
     username: AlexAkulov
     repository: hungryfox-unstable
     token: $PACKAGECLOUD_TOKEN
-    package_glob: build/hungryfox*.deb
+    package_glob: build/hungryfox_*.deb
+    skip_cleanup: true
