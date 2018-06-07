@@ -14,3 +14,15 @@ script:
 after_success:
   - bash <(curl -s https://codecov.io/bash)
   - snyk test
+deploy:
+  - provider: packagecloud
+    username: AlexAkulov
+    repository: hungryfox-unstable
+    token: $PACKAGECLOUD_TOKEN
+    package_glob: build/hungryfox*.rpm
+    dist: centos/7
+  - provider: packagecloud
+    username: AlexAkulov
+    repository: hungryfox-unstable
+    token: $PACKAGECLOUD_TOKEN
+    package_glob: build/hungryfox*.deb
