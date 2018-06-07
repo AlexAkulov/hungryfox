@@ -1,27 +1,21 @@
 package repolist
 
 import (
-	"sync"
 	"time"
 
 	"github.com/AlexAkulov/hungryfox"
 )
 
 type RepoList struct {
-	sync sync.RWMutex
 	list []hungryfox.Repo
 	State hungryfox.IStateManager
 }
 
 func (l *RepoList) Clear() {
-	l.sync.Lock()
-	defer l.sync.Unlock()
 	l.list = nil
 }
 
 func (l *RepoList) addRepo(r hungryfox.Repo) {
-	l.sync.Lock()
-	defer l.sync.Unlock()
 	if l.list == nil {
 		l.list = make([]hungryfox.Repo, 0)
 	}
@@ -45,8 +39,6 @@ func (l *RepoList) UpdateRepo(r hungryfox.Repo) {
 }
 
 func (l *RepoList) GetRepoByIndex(i int) *hungryfox.Repo {
-	l.sync.Lock()
-	defer l.sync.Unlock()
 	if i > len(l.list)-1 || i < 0 {
 		return nil
 	}
@@ -57,8 +49,6 @@ func (l *RepoList) GetRepoByIndex(i int) *hungryfox.Repo {
 func (l *RepoList) GetRepoForScan() int {
 	rID := -1
 	lastScan := time.Now().UTC()
-	l.sync.RLock()
-	defer l.sync.RUnlock()
 	for i, r := range l.list {
 		if r.Scan.StartTime.IsZero() {
 			return i
@@ -72,7 +62,5 @@ func (l *RepoList) GetRepoForScan() int {
 }
 
 func (l *RepoList) GetTotalRepos() int {
-	l.sync.RLock()
-	defer l.sync.RUnlock()
 	return len(l.list)
 }

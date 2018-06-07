@@ -38,6 +38,7 @@ func (sm *ScanManager) Status() *hungryfox.Repo {
 }
 
 func (sm *ScanManager) updateScanList() {
+	sm.Log.Debug().Str("status", "start").Msg("update scan list")
 	if sm.repoList == nil {
 		sm.repoList = &repolist.RepoList{State: sm.StateManager}
 	}
@@ -52,6 +53,7 @@ func (sm *ScanManager) updateScanList() {
 			sm.Log.Error().Str("type", inspectObject.Type).Msg("unsupported type")
 		}
 	}
+	sm.Log.Debug().Str("status", "complete").Msg("update scan list")
 }
 
 // Start - start ScanManager instance
@@ -128,7 +130,7 @@ func (sm *ScanManager) ScanRepo(index int) {
 	startScan := time.Now().UTC()
 	r.Scan.StartTime = startScan
 	sm.repoList.UpdateRepo(*r)
-	
+
 	err := openScanClose(*r)
 	r.State.Refs = r.Repo.GetRefs()
 	newR := hungryfox.Repo{

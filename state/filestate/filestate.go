@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"sync"
 	"time"
 
 	"github.com/AlexAkulov/hungryfox"
@@ -14,27 +13,40 @@ import (
 )
 
 type StateManager struct {
-	Location string
-	sync     sync.RWMutex
-	state    map[string]hungryfox.Repo
-	tomb     tomb.Tomb
+	Location            string
+	state               map[string]hungryfox.Repo
+	tomb                tomb.Tomb
+	saveRepoChan        chan hungryfox.Repo
+	loadRepoChan        chan hungryfox.Repo
+	loadRepoChanRequest chan string
 }
 
 func (s *StateManager) Start() error {
 	if err := s.load(); err != nil {
 		return err
 	}
+	s.saveRepoChan = make(chan hungryfox.Repo)
+	s.loadRepoChan = make(chan hungryfox.Repo)
+	s.loadRepoChanRequest = make(chan string)
 
 	s.tomb.Go(func() error {
 		saveTicker := time.NewTicker(time.Minute)
 		for {
 			select {
 			case <-s.tomb.Dying():
-				return s.save()
+				return s.saveToFile()
 			case <-saveTicker.C:
-				if err := s.save(); err != nil {
+				if err := s.saveToFile(); err != nil {
 					fmt.Printf("can't save state with err: %v\n", err)
 				}
+			case r := <-s.saveRepoChan:
+				s.state[r.Location.URL] = r
+			case url := <-s.loadRepoChanRequest:
+				if r, ok := s.state[url]; ok {
+					s.loadRepoChan <- r
+					continue
+				}
+				s.loadRepoChan <- hungryfox.Repo{}
 			}
 		}
 	})
@@ -57,8 +69,6 @@ func (s *StateManager) load() error {
 	if err != nil {
 		return fmt.Errorf("can't open, %v", err)
 	}
-	s.sync.Lock()
-	defer s.sync.Unlock()
 	if s.state, err = converFromRawData(stateRaw); err != nil {
 		return fmt.Errorf("can't parse, %v", err)
 	}
@@ -111,14 +121,12 @@ func converFromRawData(rawData []byte) (map[string]hungryfox.Repo, error) {
 	return result, nil
 }
 
-func (s *StateManager) save() error {
+func (s *StateManager) saveToFile() error {
 	if _, err := os.Stat(s.Location); os.IsNotExist(err) {
 		if _, err := os.Create(s.Location); err != nil {
 			return fmt.Errorf("can't create, %v", err)
 		}
 	}
-	s.sync.Lock()
-	defer s.sync.Unlock()
 	rawData, err := convertToRawData(s.state)
 	if err != nil {
 		return err
@@ -130,16 +138,11 @@ func (s *StateManager) save() error {
 }
 
 func (s StateManager) Save(r hungryfox.Repo) {
-	s.sync.Lock()
-	defer s.sync.Unlock()
-	s.state[r.Location.URL] = r
+	s.saveRepoChan <- r
 }
 
 func (s StateManager) Load(url string) (hungryfox.RepoState, hungryfox.ScanStatus) {
-	s.sync.RLock()
-	defer s.sync.RUnlock()
-	if r, ok := s.state[url]; ok {
-		return r.State, r.Scan
-	}
-	return hungryfox.RepoState{}, hungryfox.ScanStatus{}
+	s.loadRepoChanRequest <- url
+	r := <-s.loadRepoChan
+	return r.State, r.Scan
 }

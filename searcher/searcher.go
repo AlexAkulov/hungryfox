@@ -3,7 +3,7 @@ package searcher
 import (
 	"fmt"
 	"strings"
-	"sync"
+	sync "github.com/sasha-s/go-deadlock"
 
 	"github.com/AlexAkulov/hungryfox"
 	"github.com/AlexAkulov/hungryfox/config"
