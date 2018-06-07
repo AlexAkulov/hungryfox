@@ -27,7 +27,7 @@ var (
 	skipScan   = flag.Bool("skip-scan", false, "Update state for all repo")
 	configFlag = flag.String("config", "config.yml", "config file location")
 	pprofFlag  = flag.Bool("pprof", false, "Enable listen pprof on :6060")
-	printConfigFlag = flag.Bool("print-config", false, "Print default config to stdout and exit")
+	printConfigFlag = flag.Bool("default-config", false, "Print default config to stdout and exit")
 )
 
 func main() {
