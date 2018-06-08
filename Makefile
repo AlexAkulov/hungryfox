@@ -29,6 +29,8 @@ build:
 	go build ${LDFLAGS} -o build/root/usr/bin/${NAME} ./cmd/hungryfox
 
 tar:
+	mkdir -p build/root/usr/lib/systemd/system
+	cp pkg/${NAME}.service build/root/usr/lib/systemd/system/${NAME}.service
 	mkdir -p build/root/etc/${NAME}
 	build/root/usr/bin/${NAME} -default-config > build/root/etc/${NAME}/config.yml
 	tar -czvPf build/${NAME}-${VERSION}-${RELEASE}.tar.gz -C build/root .
@@ -44,6 +46,7 @@ rpm:
 		--version "${VERSION}" \
 		--iteration "${RELEASE}" \
 		--config-files "/etc/${NAME}/config.yml" \
+		--after-install "./pkg/postinst" \
 		-p build \
 		build/${NAME}-${VERSION}-${RELEASE}.tar.gz
 
@@ -58,6 +61,7 @@ deb:
 		--version "${VERSION}" \
 		--iteration "${RELEASE}" \
 		--config-files "/etc/${NAME}/config.yml" \
+		--after-install "./pkg/postinst" \
 		-p build \
 		build/${NAME}-${VERSION}-${RELEASE}.tar.gz
 

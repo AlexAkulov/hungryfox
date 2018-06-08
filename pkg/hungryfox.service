@@ -1,0 +1,16 @@
+[Unit]
+Description=HungryFox is a Git Security Tool
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+ExecStart=/usr/bin/hungryfox -config=/etc/hungryfox/config.yml
+User=hungryfox
+Group=hungryfox
+Restart=always
+TimeoutStopSec=30s
+LimitMEMLOCK=infinity
+LimitNOFILE=4096
+
+[Install]
+WantedBy=multi-user.target
