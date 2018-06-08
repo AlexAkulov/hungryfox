@@ -8,8 +8,7 @@ if ! getent group "hungryfox" > /dev/null 2>&1 ; then
     groupadd -r "hungryfox"
 fi
 if ! getent passwd "hungryfox" > /dev/null 2>&1 ; then
-    useradd -r -g hungryfox -d /usr/share/hungryfox -s /sbin/nologin \
-        -c "hungryfox" hungryfox
+    useradd -r -g hungryfox -d /usr/share/hungryfox -m -s /sbin/nologin -c "hungryfox" hungryfox
 fi
 
 if [ -x /bin/systemctl ] ; then
