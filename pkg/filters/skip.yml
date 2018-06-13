@@ -1,0 +1,2 @@
+- name: these files never has secrets
+  file: \.(css|html)$

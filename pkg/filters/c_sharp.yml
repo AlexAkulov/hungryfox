@@ -1,0 +1,3 @@
+- file: \.config$
+  content: publicKeyToken=.+ culture="neutral"
+

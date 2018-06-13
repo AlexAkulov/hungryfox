@@ -1,0 +1,5 @@
+- file: \.min\.js$
+- file: \.js\.map$
+- file: dll.vendor.js$
+- file: bluebird.min.js$
+- file: /package-lock.json$
