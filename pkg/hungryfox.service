@@ -8,9 +8,13 @@ ExecStart=/usr/bin/hungryfox -config=/etc/hungryfox/config.yml
 User=hungryfox
 Group=hungryfox
 Restart=always
+ExecReload=/bin/kill -HUP $MAINPID
 TimeoutStopSec=30s
 LimitMEMLOCK=infinity
 LimitNOFILE=4096
+Nice=19
+IOSchedulingClass=3
+IOSchedulingPriority=7
 
 [Install]
 WantedBy=multi-user.target
