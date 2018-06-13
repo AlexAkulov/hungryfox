@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/AlexAkulov/hungryfox.svg?branch=master)](https://travis-ci.org/AlexAkulov/hungryfox)
 [![codecov](https://codecov.io/gh/AlexAkulov/hungryfox/branch/master/graph/badge.svg)](https://codecov.io/gh/AlexAkulov/hungryfox)
-[![Known Vulnerabilities](https://snyk.io/test/github/AlexAkulov/hungryfox/badge.svg)](https://snyk.io/test/github/AlexAkulov/hungryfox)
+
 
 **State: In development now! You probably will get many bugs!**
 
@@ -31,9 +31,17 @@ It is hard to write a good enough regex-pattern that could simultaneously find a
 
 ## Installation
 
+### From Sources
+
 ```
-go get github.com/AlexAkulov/hungryfox
+go get github.com/AlexAkulov/hungryfox/cmd/hungryfox
 ```
+
+### From [packagecloud.io](https://packagecloud.io/AlexAkulov/hungryfox-unstable)
+
+[![](https://img.shields.io/badge/deb-packagecloud.io-844fec.svg)](https://packagecloud.io/AlexAkulov/hungryfox-unstable/install#bash-deb)
+[![](https://img.shields.io/badge/rpm-packagecloud.io-844fec.svg)](https://packagecloud.io/AlexAkulov/hungryfox-unstable/install#bash-rpm)
+
 
 ## Configuation
 ```
