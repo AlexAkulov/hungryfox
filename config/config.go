@@ -20,6 +20,7 @@ type SMTP struct {
 	Password     string `yaml:"password"`
 	Recipient    string `yaml:"recipient"`
 	SentToAuthor bool   `yaml:"sent_to_autor"`
+	Delay        string `yaml:"delay"`
 }
 
 type Config struct {
@@ -62,7 +63,11 @@ type Pattern struct {
 }
 
 func defaultConfig() *Config {
-	return &Config{}
+	return &Config{
+		SMTP: &SMTP{
+			Delay: "5m",
+		},
+	}
 }
 
 func LoadConfig(configLocation string) (*Config, error) {

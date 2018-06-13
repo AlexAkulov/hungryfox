@@ -1,8 +1,11 @@
 package router
 
 import (
+	"fmt"
+
 	"github.com/AlexAkulov/hungryfox"
 	"github.com/AlexAkulov/hungryfox/config"
+	"github.com/AlexAkulov/hungryfox/helpers"
 	"github.com/AlexAkulov/hungryfox/senders/email"
 	"github.com/AlexAkulov/hungryfox/senders/file"
 
@@ -20,6 +23,10 @@ type LeaksRouter struct {
 }
 
 func (r *LeaksRouter) Start() error {
+	delay, err := helpers.ParseDuration(r.Config.SMTP.Delay)
+	if err != nil {
+		return fmt.Errorf("can't parse delay with: %v", err)
+	}
 	r.senders = map[string]hungryfox.IMessageSender{}
 
 	r.senders["email"] = &email.Sender{
@@ -31,6 +38,7 @@ func (r *LeaksRouter) Start() error {
 			InsecureTLS: !r.Config.SMTP.TLS,
 			Username:    r.Config.SMTP.Username,
 			Password:    r.Config.SMTP.Password,
+			Delay:       delay,
 		},
 		Log: r.Log,
 	}

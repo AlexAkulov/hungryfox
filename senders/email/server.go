@@ -21,6 +21,7 @@ type Config struct {
 	InsecureTLS bool
 	Username    string
 	Password    string
+	Delay       time.Duration
 }
 
 // Sender - send email
@@ -63,7 +64,7 @@ func (s *Sender) Start() error {
 	s.muster = &muster.Client{
 		MaxBatchSize:         100,
 		MaxConcurrentBatches: 1,
-		BatchTimeout:         time.Duration(30 * time.Minute),
+		BatchTimeout:         s.Config.Delay,
 		BatchMaker:           s.batchMaker,
 	}
 	return s.muster.Start()
