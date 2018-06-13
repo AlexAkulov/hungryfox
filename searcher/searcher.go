@@ -186,8 +186,8 @@ func (s *Searcher) updateConfig(conf *config.Config) error {
 		}
 		newCompiledFiltres = append(newCompiledFiltres, newFileFilters...)
 	}
-
 	s.patterns, s.filters = newCompiledPatterns, newCompiledFiltres
+	s.Log.Info().Int("patterns", len(newCompiledPatterns)).Int("filters", len(newCompiledFiltres)).Msg("loaded")
 	s.config = conf
 	return nil
 }
