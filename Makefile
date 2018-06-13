@@ -33,6 +33,8 @@ tar:
 	cp pkg/${NAME}.service build/root/usr/lib/systemd/system/${NAME}.service
 	mkdir -p build/root/etc/${NAME}
 	build/root/usr/bin/${NAME} -default-config > build/root/etc/${NAME}/config.yml
+	cp -r pkg/patterns build/root/etc/${NAME}/
+	cp -r pkg/filters build/root/etc/${NAME}/
 	tar -czvPf build/${NAME}-${VERSION}-${RELEASE}.tar.gz -C build/root .
 
 rpm:
@@ -45,7 +47,7 @@ rpm:
 		--name "${NAME}" \
 		--version "${VERSION}" \
 		--iteration "${RELEASE}" \
-		--config-files "/etc/${NAME}/config.yml" \
+		--config-files "/etc/${NAME}" \
 		--after-install "./pkg/postinst" \
 		-p build \
 		build/${NAME}-${VERSION}-${RELEASE}.tar.gz
@@ -60,7 +62,6 @@ deb:
 		--name "${NAME}" \
 		--version "${VERSION}" \
 		--iteration "${RELEASE}" \
-		--config-files "/etc/${NAME}/config.yml" \
 		--after-install "./pkg/postinst" \
 		-p build \
 		build/${NAME}-${VERSION}-${RELEASE}.tar.gz

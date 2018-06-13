@@ -1,0 +1,12 @@
+- file: Godeps/_workspace/src/
+
+- file: node_modules/
+
+- file: vendor/
+
+- file: \.config$
+  content: publicKeyToken=.+ culture="neutral"
+
+- file: /package-lock.json$
+
+- content: '"(get|mini)pass": "\^?[\d.]+"'

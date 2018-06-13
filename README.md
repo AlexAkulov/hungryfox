@@ -93,3 +93,4 @@ We use HungryFox for scanning ~3,5K repositories on our GitLab server and about 
 - [git-secrets](https://github.com/awslabs/git-secrets)
 - [Truffle Hog](https://github.com/dxa4481/truffleHog)
 - [repo-scraper](https://github.com/dssg/repo-scraper)
+- [Security Scan](https://github.com/onetwopunch/security-scan)

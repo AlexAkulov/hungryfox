@@ -18,7 +18,7 @@ func getGitHubRepoPath(repoPath string) (string, error) {
 	return "", nil
 }
 
-func (sm *ScanManager) inspectGithub(inspect *config.Inspect) error {
+func (sm *ScanManager) inspectGithub(inspect config.Inspect) error {
 	githubClient := github.Client{
 		Token:   inspect.Token,
 		WorkDir: inspect.WorkDir,

@@ -1,0 +1,26 @@
+# https://github.com/techgaun/github-dorks/blob/master/github-dorks.txt
+- file: /\.npmrc$
+  content: _auth\s{0,10}=.+
+
+- file: /\.dockercfg$
+  content: \"auth\":\s?\".+\"
+
+- name: slack token
+  content: xox[pboa]-[\d\w-]+
+
+- name: slack webhook url
+  content: (?i)https?://hooks\.slack\.com/services/[\w\d/]+
+
+- file: /\.s3cfg$
+
+- file: /\.htpasswd$
+
+- file: /\.git-credentials$
+
+- file: /[._]netrc$
+  content: password
+
+- file: /filezilla.xml$
+  content: Pass
+
+- file: /\.pgpass$

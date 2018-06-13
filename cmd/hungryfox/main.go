@@ -23,10 +23,10 @@ import (
 )
 
 var (
-	version    = "unknown"
-	skipScan   = flag.Bool("skip-scan", false, "Update state for all repo")
-	configFlag = flag.String("config", "config.yml", "config file location")
-	pprofFlag  = flag.Bool("pprof", false, "Enable listen pprof on :6060")
+	version         = "unknown"
+	skipScan        = flag.Bool("skip-scan", false, "Update state for all repo")
+	configFlag      = flag.String("config", "config.yml", "config file location")
+	pprofFlag       = flag.Bool("pprof", false, "Enable listen pprof on :6060")
 	printConfigFlag = flag.Bool("default-config", false, "Print default config to stdout and exit")
 )
 
@@ -108,9 +108,9 @@ func main() {
 		Workers:     numCPUs,
 		DiffChannel: diffChannel,
 		LeakChannel: leakChannel,
+		Log:         logger,
 	}
-	leakSearcher.SetConfig(conf)
-	if err := leakSearcher.Start(); err != nil {
+	if err := leakSearcher.Start(conf); err != nil {
 		logger.Error().Str("service", "leaks searcher").Str("error", err.Error()).Msg("fail")
 		os.Exit(1)
 	}
@@ -175,7 +175,7 @@ func main() {
 			logger.Error().Str("error", err.Error()).Msg("can't update config")
 			continue
 		}
-		leakSearcher.SetConfig(newConf)
+		leakSearcher.Update(newConf)
 		scanManager.SetConfig(newConf)
 		logger.Info().Msg("settings reloaded")
 	}

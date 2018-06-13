@@ -1,0 +1,15 @@
+# https://github.com/onetwopunch/security-scan/blob/master/matchers.json
+- name: AWS Access Key ID
+  content: AKIA[0-9A-Z]{16}
+
+- name: Redis URL with Password
+  content: (?i)redis://[^:]*:[^@]+@[\w\d.]+
+
+- name: URL Basic auth
+  content: (?i)https?://[\w\d_-]+?:[\d\w_.-]+@.+
+
+- name: Google Access Token
+  content: ya29.[\w\d_\\-]{68}
+
+- name: Google API
+  content: AIzaSy[\w\d_\\-]{33}

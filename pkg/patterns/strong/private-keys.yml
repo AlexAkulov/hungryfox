@@ -1,0 +1,8 @@
+- name: SSH Private Key
+  content: "(?i)-BEGIN (RSA |DSA |OPENSSH ){0,1}PRIVATE KEY-"
+
+- name: Putty Private Key
+  content: "(?i)PuTTY-User-Key-File"
+
+- name: certificate
+  content: (?i)-BEGIN CERTIFICATE-

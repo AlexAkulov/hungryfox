@@ -10,7 +10,7 @@ import (
 	"github.com/AlexAkulov/hungryfox/config"
 )
 
-func expandGlob(inspect *config.Inspect) (map[string]struct{}, error) {
+func expandGlob(inspect config.Inspect) (map[string]struct{}, error) {
 	excludePaths := make(map[string]struct{})
 	for _, pattern := range inspect.Paths {
 		if !strings.HasPrefix(pattern, "!") {
@@ -46,7 +46,7 @@ func expandGlob(inspect *config.Inspect) (map[string]struct{}, error) {
 	return scanPaths, nil
 }
 
-func (sm *ScanManager) inspectRepoPath(inspectObject *config.Inspect) error {
+func (sm *ScanManager) inspectRepoPath(inspectObject config.Inspect) error {
 	scanPathList, err := expandGlob(inspectObject)
 	if err != nil {
 		sm.Log.Error().Str("error", err.Error()).Msg("can't expand glob")
@@ -62,7 +62,7 @@ func (sm *ScanManager) inspectRepoPath(inspectObject *config.Inspect) error {
 	return nil
 }
 
-func getRepoLocation(path string, inspectObject *config.Inspect) hungryfox.RepoLocation {
+func getRepoLocation(path string, inspectObject config.Inspect) hungryfox.RepoLocation {
 	prefix := strings.Replace(inspectObject.TrimPrefix, "\\", "/", -1)
 	prefix = strings.TrimSuffix(prefix, "/")
 	path = strings.Replace(path, "\\", "/", -1)

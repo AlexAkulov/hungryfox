@@ -3,7 +3,6 @@ package config
 import (
 	"fmt"
 	"io/ioutil"
-	"regexp"
 	"time"
 
 	"github.com/AlexAkulov/hungryfox/helpers"
@@ -24,11 +23,11 @@ type SMTP struct {
 }
 
 type Config struct {
-	Common   *Common    `yaml:"common"`
-	Inspect  []*Inspect `yaml:"inspect"`
-	Patterns []*Pattern `yaml:"patterns"`
-	Filters  []*Pattern `yaml:"filters"`
-	SMTP     *SMTP      `yaml:"smtp"`
+	Common   *Common   `yaml:"common"`
+	Inspect  []Inspect `yaml:"inspect"`
+	Patterns []Pattern `yaml:"patterns"`
+	Filters  []Pattern `yaml:"filters"`
+	SMTP     *SMTP     `yaml:"smtp"`
 }
 
 type Inspect struct {
@@ -50,41 +49,20 @@ type Common struct {
 	LogLevel               string `yaml:"log_level"`
 	LeaksFile              string `yaml:"leaks_file"`
 	ScanIntervalString     string `yaml:"scan_interval"`
+	PatternsPath           string `yaml:"patterns_path"`
+	FiltresPath            string `yaml:"filters_path"`
 	HistoryPastLimit       time.Time
 	ScanInterval           time.Duration
 }
 
 type Pattern struct {
-	Name      string `yaml:"name"`
-	File      string `yaml:"file"`
-	Content   string `yaml:"content"`
-	ContentRe *regexp.Regexp
-	FileRe    *regexp.Regexp
+	Name    string `yaml:"name"`
+	File    string `yaml:"file"`
+	Content string `yaml:"content"`
 }
 
 func defaultConfig() *Config {
 	return &Config{}
-}
-
-func compilePatterns(patterns []*Pattern) error {
-	for _, pattern := range patterns {
-		var err error
-		if pattern.File == "*" || pattern.File == "" {
-			pattern.FileRe = regexp.MustCompile(".+")
-		} else {
-			if pattern.FileRe, err = regexp.Compile(pattern.File); err != nil {
-				return fmt.Errorf("can't compile pattern file regexp '%s' with: %v", pattern.File, err)
-			}
-		}
-		if pattern.Content == "*" || pattern.Content == "" {
-			pattern.ContentRe = regexp.MustCompile(".+")
-		} else {
-			if pattern.ContentRe, err = regexp.Compile(pattern.Content); err != nil {
-				return fmt.Errorf("can't compile pattern content regexp '%s' with: %v", pattern.Content, err)
-			}
-		}
-	}
-	return nil
 }
 
 func LoadConfig(configLocation string) (*Config, error) {
@@ -93,16 +71,9 @@ func LoadConfig(configLocation string) (*Config, error) {
 	if err != nil {
 		return nil, fmt.Errorf("can't read with: %v", err)
 	}
-	err = yaml.Unmarshal([]byte(configYaml), &config)
+	err = yaml.Unmarshal(configYaml, &config)
 	if err != nil {
 		return nil, fmt.Errorf("can't parse with: %v", err)
-	}
-
-	if err := compilePatterns(config.Patterns); err != nil {
-		return nil, err
-	}
-	if err := compilePatterns(config.Filters); err != nil {
-		return nil, err
 	}
 	pastLimit, err := helpers.ParseDuration(config.Common.HistoryPastLimitString)
 	if err != nil {
