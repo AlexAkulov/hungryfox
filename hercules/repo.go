@@ -257,7 +257,7 @@ func (r *Repo) Open() error {
 		return r.open()
 	}
 	if _, err := os.Stat(r.fullRepoPath()); os.IsNotExist(err) {
-		if err := os.MkdirAll(r.fullRepoPath(), 755); err != nil {
+		if err := os.MkdirAll(r.fullRepoPath(), 0755); err != nil {
 			return err
 		}
 		cloneOptions := &git.CloneOptions{
