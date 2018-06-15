@@ -1,6 +1,6 @@
 package searcher
 
-port (
+import (
 	"regexp"
 	"testing"
 
