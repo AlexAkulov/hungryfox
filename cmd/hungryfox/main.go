@@ -104,6 +104,9 @@ func main() {
 	if numCPUs < 1 {
 		numCPUs = 1
 	}
+	if conf.Common.Workers > 0 {
+		numCPUs = conf.Common.Workers
+	}
 	leakSearcher := &searcher.Searcher{
 		Workers:     numCPUs,
 		DiffChannel: diffChannel,

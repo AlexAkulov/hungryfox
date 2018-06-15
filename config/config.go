@@ -52,6 +52,7 @@ type Common struct {
 	ScanIntervalString     string `yaml:"scan_interval"`
 	PatternsPath           string `yaml:"patterns_path"`
 	FiltresPath            string `yaml:"filters_path"`
+	Workers                int    `yaml:"workers"`
 	HistoryPastLimit       time.Time
 	ScanInterval           time.Duration
 }
