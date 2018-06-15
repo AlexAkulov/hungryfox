@@ -19,7 +19,7 @@ func (self *File) Stop() error {
 	return nil
 }
 
-func (self *File) Send(leak *hungryfox.Leak) error {
+func (self *File) Send(leak hungryfox.Leak) error {
 	f, err := os.OpenFile(self.LeaksFile, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
 	if err != nil {
 		return err

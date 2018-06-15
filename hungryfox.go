@@ -45,14 +45,14 @@ type Repo struct {
 
 type IMessageSender interface {
 	Start() error
-	Send(*Leak) error
+	Send(Leak) error
 	Stop() error
 }
 
 type ILeakSearcher interface {
 	Start() error
 	SetConfig() error
-	Search(*Diff)
+	Search(Diff)
 	Stop() error
 }
 

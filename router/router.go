@@ -28,19 +28,20 @@ func (r *LeaksRouter) Start() error {
 		return fmt.Errorf("can't parse delay with: %v", err)
 	}
 	r.senders = map[string]hungryfox.IMessageSender{}
-
-	r.senders["email"] = &email.Sender{
-		AuditorEmail: r.Config.SMTP.Recipient,
-		Config: &email.Config{
-			From:        r.Config.SMTP.From,
-			SMTPHost:    r.Config.SMTP.Host,
-			SMTPPort:    r.Config.SMTP.Port,
-			InsecureTLS: !r.Config.SMTP.TLS,
-			Username:    r.Config.SMTP.Username,
-			Password:    r.Config.SMTP.Password,
-			Delay:       delay,
-		},
-		Log: r.Log,
+	if r.Config.SMTP.Enable {
+		r.senders["email"] = &email.Sender{
+			AuditorEmail: r.Config.SMTP.Recipient,
+			Config: &email.Config{
+				From:        r.Config.SMTP.From,
+				SMTPHost:    r.Config.SMTP.Host,
+				SMTPPort:    r.Config.SMTP.Port,
+				InsecureTLS: !r.Config.SMTP.TLS,
+				Username:    r.Config.SMTP.Username,
+				Password:    r.Config.SMTP.Password,
+				Delay:       delay,
+			},
+			Log: r.Log,
+		}
 	}
 	r.senders["file"] = &file.File{
 		LeaksFile: r.Config.Common.LeaksFile,
@@ -60,7 +61,7 @@ func (r *LeaksRouter) Start() error {
 				return nil
 			case leak := <-r.LeakChannel:
 				for _, sender := range r.senders {
-					sender.Send(leak)
+					sender.Send(*leak)
 				}
 			}
 		}

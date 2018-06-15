@@ -104,12 +104,12 @@ func (s *Searcher) worker() error {
 		case diff := <-s.DiffChannel:
 			leaks := s.GetLeaks(*diff)
 			filtredLeaks := 0
-			for _, leak := range leaks {
-				if s.filterLeak(leak) {
+			for i := range leaks {
+				if s.filterLeak(leaks[i]) {
 					filtredLeaks++
 					continue
 				}
-				s.LeakChannel <- &leak
+				s.LeakChannel <- &leaks[i]
 			}
 			leaksCount := len(leaks) - filtredLeaks
 			if leaksCount > 0 || filtredLeaks > 0 {
@@ -214,7 +214,7 @@ func (s *Searcher) GetLeaks(diff hungryfox.Diff) []hungryfox.Leak {
 				if len(line) > 1024 {
 					line = line[:1024]
 				}
-				leak := hungryfox.Leak{
+				leaks = append(leaks, hungryfox.Leak{
 					RepoPath:     diff.RepoPath,
 					FilePath:     diff.FilePath,
 					PatternName:  pattern.Name,
@@ -225,8 +225,7 @@ func (s *Searcher) GetLeaks(diff hungryfox.Diff) []hungryfox.Leak {
 					CommitAuthor: diff.Author,
 					CommitEmail:  diff.AuthorEmail,
 					RepoURL:      diff.RepoURL,
-				}
-				leaks = append(leaks, leak)
+				})
 			}
 		}
 	}

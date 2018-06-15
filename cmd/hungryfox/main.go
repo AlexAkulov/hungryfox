@@ -117,7 +117,7 @@ func main() {
 		logger.Error().Str("service", "leaks searcher").Str("error", err.Error()).Msg("fail")
 		os.Exit(1)
 	}
-	logger.Debug().Str("service", "leaks searcher").Msg("started")
+	logger.Debug().Str("service", "leaks searcher").Int("workers", numCPUs).Msg("started")
 
 	logger.Debug().Str("service", "state manager").Msg("start")
 	stateManager := &filestate.StateManager{

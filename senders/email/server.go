@@ -76,7 +76,7 @@ func (s *Sender) Stop() error {
 }
 
 // Send - send leaks
-func (s *Sender) Send(leak *hungryfox.Leak) error {
+func (s *Sender) Send(leak hungryfox.Leak) error {
 	s.muster.Work <- leak
 	return nil
 }

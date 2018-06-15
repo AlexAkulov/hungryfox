@@ -21,7 +21,7 @@ type mailTemplateStruct struct {
 
 type mailTemplateRepoStruct struct {
 	RepoURL string
-	Items   []*hungryfox.Leak
+	Items   []hungryfox.Leak
 }
 
 func (s *Sender) batchMaker() muster.Batch {
@@ -58,7 +58,7 @@ func (b *batch) Fire(notifier muster.Notifier) {
 }
 
 func (b *batch) Add(item interface{}) {
-	leak := item.(*hungryfox.Leak)
+	leak := item.(hungryfox.Leak)
 	leak.LeakString = strings.TrimSpace(leak.LeakString)
 	if len(leak.LeakString) > 512 {
 		leak.LeakString = "too long"
@@ -66,7 +66,7 @@ func (b *batch) Add(item interface{}) {
 	if b.Repos[leak.RepoURL] == nil {
 		b.Repos[leak.RepoURL] = &mailTemplateRepoStruct{
 			RepoURL: leak.RepoURL,
-			Items:   []*hungryfox.Leak{},
+			Items:   []hungryfox.Leak{},
 		}
 	}
 	b.Repos[leak.RepoURL].Items = append(b.Repos[leak.RepoURL].Items, leak)
