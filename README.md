@@ -6,17 +6,18 @@
 
 **State: In development now! You probably will get many bugs!**
 
-HungryFox is a software for continious search for leaks of sensative information like passwords, api-keys, private certificates and etc in your repositories.
+HungryFox is a software for continuous search for leaks of sensitive information like passwords, api-keys, private certificates and etc in your repositories.
 
 HungryFox differs from other solutions as it can work as a daemon and efficiently scans each new commit in repo and sends notification about found leaks.
 
-HungryFor works on regex-patterns only and doesn't use analyze by entropy because in my opinion this way generates a lot of false positive events. Maybe analyse by entropy will be added in future.
+HungryFor works on regex-patterns only and does not use analyze by entropy because in my opinion this way generates a lot of false positive events. Maybe analyse by entropy will be added in future.
 
-It is hard to write a good enough regex-pattern that could simultaneously find all leaks and not to generate a lot of false positive events so HungryFox in addition with regex-patterns has regex-filtres. You can write weak regex-pattern for search leaks and skip known false positive with the help of regex-filters.
+It is hard to write a good enough regex-pattern that could simultaneously find all leaks and not to generate a lot of false positive events so HungryFox in addition with regex-patterns has regex-filters. You can write 
+weak regex-pattern for search leaks and skip known false positive with the help of regex-filters.
 
 
 ## Features
-- [x] Patterns and filtres
+- [x] Patterns and filters
 - [x] State support
 - [x] Notifications by email
 - [x] History limit by time
@@ -92,7 +93,7 @@ filters:
     file: /IntegrationTests/.+_test\.go$    # .+ by default
     # content:                              # .+ by default
 ```
-## Perfomance
+## Performance
 We use HungryFox for scanning ~3,5K repositories on our GitLab server and about one hundred repositories on GitHub
 
 ## Alternatives
@@ -102,3 +103,4 @@ We use HungryFox for scanning ~3,5K repositories on our GitLab server and about 
 - [Truffle Hog](https://github.com/dxa4481/truffleHog)
 - [repo-scraper](https://github.com/dssg/repo-scraper)
 - [Security Scan](https://github.com/onetwopunch/security-scan)
+
