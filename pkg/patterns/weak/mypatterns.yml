@@ -6,3 +6,6 @@
 - name: password apikey or secret in YAML
   file: (?i)\.(yaml|yml)$
   content: (?i)(pass|api[\w\d_-]{0,10}key|secret)[\w\d_.-]{0,10}['"]?\s{0,10}:\s{0,10}["']?[^\s]+
+
+- name: password apikey or secret in xml
+  content: (?i)<(pass|api[a-z0-9_-]{0,10}key|secret)[a-z0-9_.-]{0,10}>.+<\/(pass|api[a-z0-9_-]{0,10}key|secret)[a-z0-9_.-]{0,10}>
