@@ -97,10 +97,11 @@ filters:
 We use HungryFox for scanning ~3,5K repositories on our GitLab server and about one hundred repositories on GitHub
 
 ## Alternatives
-- [Gitrob](https://github.com/michenriksen/gitrob)
-- [Gitleaks](https://github.com/zricethezav/gitleaks)
-- [git-secrets](https://github.com/awslabs/git-secrets)
-- [Truffle Hog](https://github.com/dxa4481/truffleHog)
-- [repo-scraper](https://github.com/dssg/repo-scraper)
-- [Security Scan](https://github.com/onetwopunch/security-scan)
-
+- [Gitrob by michenriksen](https://github.com/michenriksen/gitrob)
+- [Gitleaks by zricethezav](https://github.com/zricethezav/gitleaks)
+- [git-secrets by AWSLabs](https://github.com/awslabs/git-secrets)
+- [Truffle Hog by dxa4481](https://github.com/dxa4481/truffleHog)
+- [repo-scraper by dssg](https://github.com/dssg/repo-scraper)
+- [Security Scan by onetwopunch](https://github.com/onetwopunch/security-scan)
+- [repo-security-scanner by UKHomeOffice](https://github.com/UKHomeOffice/repo-security-scanner)
+- [detect-secrets by Yelp](https://github.com/Yelp/detect-secrets)
