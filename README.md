@@ -106,3 +106,5 @@ We use HungryFox for scanning ~3,5K repositories on our GitLab server and about 
 - [repo-security-scanner by UKHomeOffice](https://github.com/UKHomeOffice/repo-security-scanner)
 - [detect-secrets by Yelp](https://github.com/Yelp/detect-secrets)
 - [Github Dorks by techgaun](https://github.com/techgaun/github-dorks)
+- [Repo Supervisor by Auth0](https://github.com/auth0/repo-supervisor)
+- [git-all-secrets by anshumanbh](https://github.com/anshumanbh/git-all-secrets)
