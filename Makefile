@@ -18,9 +18,6 @@ clean:
 test:
 	go test ./...
 
-prepare:
-	go get "github.com/smartystreets/"
-
 test_codecov:
 	go test -race -coverprofile="coverage.txt" ./...
 
@@ -66,4 +63,4 @@ deb:
 		-p build \
 		build/${NAME}-${VERSION}-${RELEASE}.tar.gz
 
-travis: prepare test_codecov build tar rpm deb
+travis: test_codecov build tar rpm deb

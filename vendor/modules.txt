@@ -79,7 +79,7 @@ github.com/hashicorp/vault/helper/compressutil
 github.com/hashicorp/vault/helper/strutil
 # github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99
 github.com/jbenet/go-context/io
-# github.com/jtolds/gls v4.2.1+incompatible
+# github.com/jtolds/gls v4.2.2-0.20181110203027-b4936e06046b+incompatible
 github.com/jtolds/gls
 # github.com/kevinburke/ssh_config v0.0.0-20180830205328-81db2a75821e
 github.com/kevinburke/ssh_config
