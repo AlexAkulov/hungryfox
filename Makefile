@@ -23,7 +23,7 @@ test_codecov:
 
 build:
 	mkdir -p build/root/usr/bin
-	go build -mod vendor ${LDFLAGS} -o build/root/usr/bin/${NAME} ./cmd/hungryfox
+	go build ${LDFLAGS} -o build/root/usr/bin/${NAME} ./cmd/hungryfox
 
 tar:
 	mkdir -p build/root/usr/lib/systemd/system
