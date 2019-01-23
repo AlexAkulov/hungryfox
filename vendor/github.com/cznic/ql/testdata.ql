@@ -811,7 +811,7 @@ FROM
 	SELECT *
 	FROM department
 );
-|"", "", "", ""
+|"LastName", "DepartmentID", "DepartmentID", "DepartmentName"
 [Williams <nil> 35 Marketing]
 [Williams <nil> 34 Clerical]
 [Williams <nil> 33 Engineering]
@@ -849,7 +849,7 @@ FROM
 	FROM department
 )
 ORDER BY e.LastName, e.DepartmentID;
-|"e.LastName", "e.DepartmentID", "", ""
+|"e.LastName", "e.DepartmentID", "DepartmentID", "DepartmentName"
 [Heisenberg 33 35 Marketing]
 [Heisenberg 33 34 Clerical]
 [Heisenberg 33 33 Engineering]
@@ -887,7 +887,7 @@ FROM
 	FROM department
 ) AS d
 ORDER BY d.DepartmentID DESC;
-|"", "", "d.DepartmentID", "d.DepartmentName"
+|"LastName", "DepartmentID", "d.DepartmentID", "d.DepartmentName"
 [Rafferty 31 35 Marketing]
 [Jones 33 35 Marketing]
 [Heisenberg 33 35 Marketing]
@@ -922,7 +922,7 @@ FROM
 		FROM department
 	)
 ORDER BY employee.LastName;
-|"employee.LastName", "employee.DepartmentID", "", ""
+|"employee.LastName", "employee.DepartmentID", "DepartmentID", "DepartmentName"
 [Heisenberg 33 35 Marketing]
 [Heisenberg 33 34 Clerical]
 [Heisenberg 33 33 Engineering]
@@ -1654,7 +1654,7 @@ FROM
 	employee AS e,
 	( SELECT * FROM department)
 ORDER BY e.LastName;
-|"e.LastName", "e.DepartmentID", "", ""
+|"e.LastName", "e.DepartmentID", "DepartmentID", "DepartmentName"
 [Heisenberg 33 35 Marketing]
 [Heisenberg 33 34 Clerical]
 [Heisenberg 33 33 Engineering]
@@ -15670,3 +15670,108 @@ COMMIT;
 SELECT * FROM t WHERE c1 = 1;
 |"c1", "c2"
 [1 a]
+
+-- 1347 // https://github.com/cznic/ql/issues/155
+SELECT 42;
+|""
+[42]
+
+-- 1348 // https://github.com/cznic/ql/issues/155, see also #1353
+BEGIN TRANSACTION;
+	CREATE TABLE t (i int);
+	INSERT INTO t VALUES (1);
+	INSERT INTO t VALUES (2);
+	INSERT INTO t VALUES (3);
+COMMIT;
+SELECT * FROM t WHERE EXISTS (SELECT * FROM t WHERE i == 2) ORDER BY i;
+|"i"
+[1]
+[2]
+[3]
+
+-- 1349 // https://github.com/cznic/ql/issues/155
+BEGIN TRANSACTION;
+	CREATE TABLE t (i int);
+COMMIT;
+SELECT * FROM t WHERE EXISTS (SELECT * FROM t WHERE i == 2);
+|"i"
+
+-- 1350 // https://github.com/cznic/ql/issues/155
+BEGIN TRANSACTION;
+	CREATE TABLE t (i int);
+	INSERT INTO t VALUES (1);
+	INSERT INTO t VALUES (2);
+	INSERT INTO t VALUES (3);
+COMMIT;
+SELECT * FROM t WHERE EXISTS (SELECT * FROM t WHERE i == 4);
+|"i"
+
+-- 1351 // https://github.com/cznic/ql/issues/155
+BEGIN TRANSACTION;
+	CREATE TABLE t (i int);
+	INSERT INTO t VALUES (1);
+	INSERT INTO t VALUES (2);
+	INSERT INTO t VALUES (3);
+COMMIT;
+SELECT * FROM t WHERE NOT EXISTS (SELECT * FROM t WHERE i == 2);
+|"i"
+
+-- 1352 // https://github.com/cznic/ql/issues/155
+BEGIN TRANSACTION;
+	CREATE TABLE t (i int);
+	INSERT INTO t VALUES (1);
+	INSERT INTO t VALUES (2);
+	INSERT INTO t VALUES (3);
+COMMIT;
+SELECT * FROM t WHERE NOT EXISTS (SELECT * FROM t WHERE i == 4) ORDER BY i;
+|"i"
+[1]
+[2]
+[3]
+
+-- 1353 // https://github.com/cznic/ql/issues/155, illustrates why #1348 should return 3 rows
+BEGIN TRANSACTION;
+	CREATE TABLE t (i int);
+	INSERT INTO t VALUES (1);
+	INSERT INTO t VALUES (2);
+	INSERT INTO t VALUES (3);
+COMMIT;
+SELECT * FROM t WHERE true ORDER BY i
+|"i"
+[1]
+[2]
+[3]
+
+-- 1354 // https://github.com/cznic/ql/issues/176
+BEGIN TRANSACTION;
+	CREATE TABLE t (á int);
+	INSERT INTO t VALUES (1);
+	INSERT INTO t VALUES (2);
+	INSERT INTO t VALUES (3);
+COMMIT;
+SELECT * FROM t ORDER BY á
+|"á"
+[1]
+[2]
+[3]
+
+-- 1355 // https://github.com/cznic/ql/issues/187
+BEGIN TRANSACTION;
+	CREATE TABLE t (b string, c string);
+	ALTER TABLE t DROP COLUMN b;
+	CREATE INDEX d ON t (c);
+COMMIT;
+SELECT * FROM t;
+|"c"
+
+-- 1356 // https://github.com/cznic/ql/issues/188
+BEGIN TRANSACTION;
+    CREATE TABLE t (b string, c string);
+    CREATE INDEX bx ON t (b);
+    ALTER TABLE t DROP COLUMN b;
+    CREATE INDEX cx ON t (c);
+    INSERT INTO t (c) VALUES ("abc");
+COMMIT;
+SELECT c FROM t WHERE c = "abc";
+|"c"
+[abc]

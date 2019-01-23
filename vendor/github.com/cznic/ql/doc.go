@@ -14,6 +14,8 @@
 //
 // Change list
 //
+// 2018-08-02: Release v1.2.0 adds initial support for Go modules.
+//
 // 2017-01-10: Release v1.1.0 fixes some bugs and adds a configurable WAL
 // headroom.
 //
@@ -213,12 +215,14 @@
 //  newline        = . // the Unicode code point U+000A
 //  unicode_char   = . // an arbitrary Unicode code point except newline
 //  ascii_letter   = "a" … "z" | "A" … "Z" .
+//  unicode_letter = . // Unicode category L.
+//  unicode_digit  = . // Unocode category D.
 //
 // Letters and digits
 //
 // The underscore character _ (U+005F) is considered a letter.
 //
-//  letter        = ascii_letter | "_" .
+//  letter        = ascii_letter | unicode_letter | "_" .
 //  decimal_digit = "0" … "9" .
 //  octal_digit   = "0" … "7" .
 //  hex_digit     = "0" … "9" | "A" … "F" | "a" … "f" .
@@ -262,7 +266,7 @@
 // identifier is a sequence of one or more letters and digits. The first
 // character in an identifier must be a letter.
 //
-//  identifier = letter { letter | decimal_digit } .
+//  identifier = letter { letter | decimal_digit | unicode_digit } .
 //
 // For example
 //
@@ -284,18 +288,21 @@
 //
 // The following keywords are reserved and may not be used as identifiers.
 //
-//	ADD      COLUMN      false     int32   ORDER     uint16
-//	ALTER    complex128  float     int64   OUTER     uint32
-//	AND      complex64   float32   int8    RIGHT     uint64
-//	AS       CREATE      float64   INTO    SELECT    uint8
-//	ASC      DEFAULT     FROM      JOIN    SET       UNIQUE
-//	BETWEEN  DELETE      GROUP     LEFT    string    UPDATE
-//	bigint   DESC        IF        LIMIT   TABLE     VALUES
-//	bigrat   DISTINCT    IN        LIKE    time      WHERE
-//	blob     DROP        INDEX     NOT     true
-//	bool     duration    INSERT    NULL    OR
-//	BY       EXISTS      int       OFFSET  TRUNCATE
-//	byte     EXPLAIN     int16     ON      uint
+//	ADD	      complex128    FROM	  LEFT		string
+//	ALTER	      complex64	    FULL	  LIKE		TABLE
+//	AND	      CREATE	    GROUP	  LIMIT		time
+//	AS	      DEFAULT	    IF		  NOT		TRANSACTION
+//	ASC	      DELETE	    IN		  NULL		true
+//	BEGIN	      DESC	    INDEX	  OFFSET	TRUNCATE
+//	BETWEEN	      DISTINCT	    INSERT	  ON		uint
+//	bigint	      DROP	    int		  OR		uint16
+//	bigrat	      duration	    int16	  ORDER		uint32
+//	blob	      EXISTS	    int32	  OUTER		uint64
+//	bool	      EXPLAIN	    int64	  RIGHT		uint8
+//	BY	      false	    int8	  ROLLBACK	UNIQUE
+//	byte	      float	    INTO	  rune		UPDATE
+//	COLUMN	      float32	    IS		  SELECT	VALUES
+//	COMMIT	      float64	    JOIN	  SET		WHERE
 //
 // Keywords are not case sensitive.
 //
@@ -1086,7 +1093,7 @@
 //
 // - Rational values are comparable and ordered, in the usual way.
 //
-// - String values are comparable and ordered, lexically byte-wise.
+// - String and Blob values are comparable and ordered, lexically byte-wise.
 //
 // - Time values are comparable and ordered.
 //
@@ -1735,7 +1742,7 @@
 // The result can be filtered using a WhereClause and orderd by the OrderBy
 // clause.
 //
-//  SelectStmt = "SELECT" [ "DISTINCT" ] ( "*" | FieldList ) "FROM" RecordSetList
+//  SelectStmt = "SELECT" [ "DISTINCT" ] ( "*" | FieldList ) [ "FROM" RecordSetList ]
 //  	[ JoinClause ] [ WhereClause ] [ GroupByClause ] [ OrderBy ] [ Limit ] [ Offset ].
 //
 //  JoinClause = ( "LEFT" | "RIGHT" | "FULL" ) [ "OUTER" ] "JOIN" RecordSet "ON" Expression .
@@ -1875,7 +1882,16 @@
 // It is an error if the expression evaluates to a non null value of non bool
 // type.
 //
-//  WhereClause = "WHERE" Expression .
+// Another form of the WHERE clause is an existence predicate of a
+// parenthesized select statement. The EXISTS form evaluates to true if the
+// parenthesized SELECT statement produces a non empty record set. The NOT
+// EXISTS form evaluates to true if the parenthesized SELECT statement produces
+// an empty record set. The parenthesized SELECT statement is evaluated only
+// once (TODO issue #159).
+//
+//  WhereClause = "WHERE" Expression
+//  		| "WHERE" "EXISTS" "(" SelectStmt ")"
+//  		| "WHERE" "NOT" "EXISTS" "(" SelectStmt ")" .
 //
 // Recordset grouping
 //

@@ -53,6 +53,7 @@ var builtin = map[string]struct {
 	"second":       {builtinSecond, 1, 1, true, false},
 	"seconds":      {builtinSeconds, 1, 1, true, false},
 	"since":        {builtinSince, 1, 1, false, false},
+	"sleep":        {builtinSleep, 1, 1, false, false},
 	"sum":          {builtinSum, 1, 1, false, true},
 	"timeIn":       {builtinTimeIn, 2, 2, true, false},
 	"weekday":      {builtinWeekday, 1, 1, true, false},
@@ -126,11 +127,11 @@ func builtinAvg(arg []interface{}, ctx map[interface{}]interface{}) (v interface
 		case complex64:
 			return complex64(complex128(x) / complex(float64(data.n), 0)), nil
 		case complex128:
-			return complex64(complex128(x) / complex(float64(data.n), 0)), nil
+			return complex64(x / complex(float64(data.n), 0)), nil
 		case float32:
 			return float32(float64(x) / float64(data.n)), nil
 		case float64:
-			return float64(x) / float64(data.n), nil
+			return x / float64(data.n), nil
 		case int8:
 			return int8(int64(x) / int64(data.n)), nil
 		case int16:
@@ -138,7 +139,7 @@ func builtinAvg(arg []interface{}, ctx map[interface{}]interface{}) (v interface
 		case int32:
 			return int32(int64(x) / int64(data.n)), nil
 		case int64:
-			return int64(int64(x) / int64(data.n)), nil
+			return x / int64(data.n), nil
 		case uint8:
 			return uint8(uint64(x) / data.n), nil
 		case uint16:
@@ -146,7 +147,7 @@ func builtinAvg(arg []interface{}, ctx map[interface{}]interface{}) (v interface
 		case uint32:
 			return uint32(uint64(x) / data.n), nil
 		case uint64:
-			return uint64(uint64(x) / data.n), nil
+			return x / data.n, nil
 		}
 
 	}
@@ -216,9 +217,9 @@ func builtinComplex(arg []interface{}, _ map[interface{}]interface{}) (v interfa
 	case idealUint:
 		return idealComplex(complex(float64(re), float64(im.(idealUint)))), nil
 	case float32:
-		return complex(float32(re), im.(float32)), nil
+		return complex(re, im.(float32)), nil
 	case float64:
-		return complex(float64(re), im.(float64)), nil
+		return complex(re, im.(float64)), nil
 	case int8:
 		return complex(float64(re), float64(im.(int8))), nil
 	case int16:
@@ -870,6 +871,26 @@ func builtinSince(arg []interface{}, ctx map[interface{}]interface{}) (v interfa
 		return time.Since(x), nil
 	default:
 		return nil, invArg(x, "since")
+	}
+}
+
+func builtinSleep(arg []interface{}, ctx map[interface{}]interface{}) (v interface{}, err error) {
+	switch x := arg[0].(type) {
+	case nil:
+		return nil, nil
+	case time.Duration:
+		time.Sleep(x)
+		return nil, nil
+	case idealInt:
+		v := time.Second * time.Duration(int64(x))
+		time.Sleep(v)
+		return nil, nil
+	case int64:
+		v := time.Second * time.Duration(x)
+		time.Sleep(v)
+		return nil, nil
+	default:
+		return nil, invArg(x, "sleep")
 	}
 }
 

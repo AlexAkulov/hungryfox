@@ -9,11 +9,15 @@ ngrep='TODOOK\|parser\.go\|scanner\.go\|.*_string\.go'
 
 all: editor
 	go vet 2>&1 | grep -v $(ngrep) || true
+	go vet 2>&1 | grep -v $(ngrep) || true
 	golint 2>&1 | grep -v $(ngrep) || true
 	make todo
 	unused . || true
 	misspell *.go
 	gosimple || true
+	codesweep || true
+	maligned || true
+	unconvert -apply
 
 clean:
 	go clean
@@ -31,8 +35,9 @@ edit:
 
 editor:
 	gofmt -l -s -w *.go
+	go test -i
 	go test 2>&1 | tee log
-	go build
+	go install
 
 internalError:
 	egrep -ho '"internal error.*"' *.go | sort | cat -n

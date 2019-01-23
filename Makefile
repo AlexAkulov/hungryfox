@@ -19,14 +19,14 @@ test:
 	go test ./...
 
 prepare:
-	go get "github.com/smartystreets/goconvey"
+	go get "github.com/smartystreets/"
 
 test_codecov:
 	go test -race -coverprofile="coverage.txt" ./...
 
 build:
 	mkdir -p build/root/usr/bin
-	go build ${LDFLAGS} -o build/root/usr/bin/${NAME} ./cmd/hungryfox
+	go build -mod vendor ${LDFLAGS} -o build/root/usr/bin/${NAME} ./cmd/hungryfox
 
 tar:
 	mkdir -p build/root/usr/lib/systemd/system

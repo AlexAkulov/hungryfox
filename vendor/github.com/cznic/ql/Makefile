@@ -14,6 +14,7 @@ all: editor scanner.go parser.go
 	unused . || true
 	misspell *.go
 	gosimple || true
+	unconvert -apply
 	go install ./...
 
 bench: all
@@ -28,7 +29,7 @@ coerce.go: helper/helper.go
 	go run helper/helper.go | gofmt > $@
 
 cover:
-	t=$(shell tempfile) ; go test -coverprofile $$t && go tool cover -html $$t && unlink $$t
+	t=$(shell mktemp) ; go test -coverprofile $$t && go tool cover -html $$t && unlink $$t
 
 cpu: clean
 	go test -run @ -bench . -cpuprofile cpu.out
@@ -57,7 +58,7 @@ nuke: clean
 	go clean -i
 
 parser.go: parser.y
-	a=$(shell tempfile) ; \
+	a=$(shell mktemp) ; \
 	  goyacc -o /dev/null -xegen $$a $< ; \
 	  goyacc -cr -o $@ -xe $$a $< ; \
 	  rm -f $$a

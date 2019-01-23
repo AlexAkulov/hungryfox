@@ -1,9 +1,5 @@
-zappy
-=====
+`github.com/cznic/zappy` has moved to [`modernc.org/zappy`](https://godoc.org/modernc.org/zappy) ([vcs](https://gitlab.com/cznic/zappy)).
 
-Package zappy implements the zappy block-based compression format.  It aims for
-a combination of good speed and reasonable compression.
+Please update your import paths to `modernc.org/zappy`.
 
-Installation: $ go get github.com/cznic/zappy
-
-Documentation: [godoc.org/github.com/cznic/zappy](http://godoc.org/github.com/cznic/zappy)
+This repo is now archived.
