@@ -14,13 +14,13 @@ func TestGetLeaks(t *testing.T) {
 	Convey("Test GetLeaks", t, func() {
 		obj := Searcher{
 			Log: zerolog.Nop(),
-			patterns: []patternType{
-				patternType{
+			rePatterns: []rePatternType{
+				rePatternType{
 					Name:      "pattern1",
 					ContentRe: regexp.MustCompile("secret"),
 					FileRe:    regexp.MustCompile("secret"),
 				},
-				patternType{
+				rePatternType{
 					Name:      "pattern2",
 					ContentRe: regexp.MustCompile("Password="),
 					FileRe:    matchAllRegex,

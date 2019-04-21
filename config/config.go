@@ -6,9 +6,18 @@ import (
 	"time"
 
 	"github.com/AlexAkulov/hungryfox/helpers"
-
-	"gopkg.in/yaml.v2"
+	yaml "gopkg.in/yaml.v2"
 )
+
+type Vault struct {
+	Enable       bool     `yaml:"enable"`
+	VaultURL     string   `yaml:"vault_url"`
+	RoleID       string   `yaml:"role_id"`
+	SecretID     string   `yaml:"secret_id"`
+	Token        string   `yaml:"token"`
+	Paths        []string `yaml:"paths"`
+	ExcludePaths []string `yaml:"exclude_paths"`
+}
 
 type SMTP struct {
 	Enable       bool   `yaml:"enable"`
@@ -19,7 +28,7 @@ type SMTP struct {
 	Username     string `yaml:"username"`
 	Password     string `yaml:"password"`
 	Recipient    string `yaml:"recipient"`
-	SentToAuthor bool   `yaml:"sent_to_autor"`
+	SentToAuthor bool   `yaml:"sent_to_author"`
 	Delay        string `yaml:"delay"`
 }
 
@@ -29,6 +38,7 @@ type Config struct {
 	Patterns []Pattern `yaml:"patterns"`
 	Filters  []Pattern `yaml:"filters"`
 	SMTP     *SMTP     `yaml:"smtp"`
+	Vault    *Vault    `yaml:"vault"`
 }
 
 type Inspect struct {
@@ -51,7 +61,7 @@ type Common struct {
 	LeaksFile              string `yaml:"leaks_file"`
 	ScanIntervalString     string `yaml:"scan_interval"`
 	PatternsPath           string `yaml:"patterns_path"`
-	FiltresPath            string `yaml:"filters_path"`
+	FiltersPath            string `yaml:"filters_path"`
 	Workers                int    `yaml:"workers"`
 	HistoryPastLimit       time.Time
 	ScanInterval           time.Duration

@@ -7,23 +7,27 @@ import (
 	"regexp"
 	"strings"
 
-	sync "github.com/sasha-s/go-deadlock"
-
 	"github.com/AlexAkulov/hungryfox"
 	"github.com/AlexAkulov/hungryfox/config"
-
+	"github.com/AlexAkulov/hungryfox/vault"
 	"github.com/rs/zerolog"
+	sync "github.com/sasha-s/go-deadlock"
 	"gopkg.in/tomb.v2"
 	yaml "gopkg.in/yaml.v2"
 )
 
 var matchAllRegex = regexp.MustCompile(".+")
 
-type patternType struct {
+type rePatternType struct {
 	Name      string
 	ContentRe *regexp.Regexp
 	FileRe    *regexp.Regexp
 }
+
+type vaultFilterType struct {
+	SecretPath *regexp.Regexp
+}
+
 
 type RepoStats struct {
 	LeaksFound   int `json:"leaks_found"`
@@ -36,19 +40,21 @@ type Searcher struct {
 	LeakChannel chan<- *hungryfox.Leak
 	Log         zerolog.Logger
 
+	vault 			*vault.Vault
 	config           *config.Config
 	stats            map[string]RepoStats
 	statsMutex       sync.RWMutex
 	tomb             tomb.Tomb
-	patterns         []patternType
-	filters          []patternType
+	rePatterns       []rePatternType
+	vaultPattrens    map[string]string
+	filters          []rePatternType
 	updateConfigChan chan *config.Config
 }
 
-func compilePatterns(configPatterns []config.Pattern) ([]patternType, error) {
-	result := make([]patternType, 0)
+func compilePatterns(configPatterns []config.Pattern) ([]rePatternType, error) {
+	result := make([]rePatternType, 0)
 	for _, configPattern := range configPatterns {
-		p := patternType{
+		p := rePatternType{
 			Name:      configPattern.Name,
 			FileRe:    matchAllRegex,
 			ContentRe: matchAllRegex,
@@ -75,6 +81,14 @@ func (s *Searcher) Update(conf *config.Config) {
 }
 
 func (s *Searcher) Start(conf *config.Config) error {
+
+	if conf.Vault.Enable {
+		s.vault = &vault.Vault{Config: conf.Vault}
+		if err := s.vault.Start(); err != nil {
+			return err
+		}
+	}
+
 	if err := s.updateConfig(conf); err != nil {
 		return err
 	}
@@ -125,11 +139,14 @@ func (s *Searcher) worker() error {
 }
 
 func (s *Searcher) Stop() error {
+	if s.vault != nil {
+		s.vault.Stop()
+	}
 	s.tomb.Kill(nil)
 	return s.tomb.Wait()
 }
 
-func loadPatternsFromFile(file string) ([]patternType, error) {
+func loadPatternsFromFile(file string) ([]rePatternType, error) {
 	rawPatterns := []config.Pattern{}
 	rawData, err := ioutil.ReadFile(file)
 	if err != nil {
@@ -145,8 +162,8 @@ func loadPatternsFromFile(file string) ([]patternType, error) {
 	return result, nil
 }
 
-func loadPatternsFromPath(path string) ([]patternType, error) {
-	result := []patternType{}
+func loadPatternsFromPath(path string) ([]rePatternType, error) {
+	result := []rePatternType{}
 	files, err := filepath.Glob(path)
 	if err != nil {
 		return nil, err
@@ -179,16 +196,24 @@ func (s *Searcher) updateConfig(conf *config.Config) error {
 		newCompiledPatterns = append(newCompiledPatterns, newFilePatterns...)
 	}
 
-	if conf.Common.FiltresPath != "" {
-		newFileFilters, err := loadPatternsFromPath(conf.Common.FiltresPath)
+	if conf.Common.FiltersPath != "" {
+		newFileFilters, err := loadPatternsFromPath(conf.Common.FiltersPath)
 		if err != nil {
 			return err
 		}
 		newCompiledFiltres = append(newCompiledFiltres, newFileFilters...)
 	}
-	s.patterns, s.filters = newCompiledPatterns, newCompiledFiltres
+	s.rePatterns, s.filters = newCompiledPatterns, newCompiledFiltres
 	s.Log.Info().Int("patterns", len(newCompiledPatterns)).Int("filters", len(newCompiledFiltres)).Msg("loaded")
 	s.config = conf
+
+	if s.config.Vault.Enable {
+		secrets, err := s.vault.ReadAll()
+		if err != nil {
+			return err
+		}
+		s.vaultPattrens = secrets
+	}
 	return nil
 }
 
@@ -205,7 +230,25 @@ func (s *Searcher) GetLeaks(diff hungryfox.Diff) []hungryfox.Leak {
 	leaks := make([]hungryfox.Leak, 0)
 	lines := strings.Split(diff.Content, "\n")
 	for _, line := range lines {
-		for _, pattern := range s.patterns {
+		// Vault
+		for path, secret := range s.vaultPattrens {
+			if strings.Contains(line, secret) {
+				leaks = append(leaks, hungryfox.Leak{
+					RepoPath:     diff.RepoPath,
+					FilePath:     diff.FilePath,
+					PatternName:  "vault",
+					Regexp:       path,
+					LeakString:   line,
+					CommitHash:   diff.CommitHash,
+					TimeStamp:    diff.TimeStamp,
+					CommitAuthor: diff.Author,
+					CommitEmail:  diff.AuthorEmail,
+					RepoURL:      diff.RepoURL,
+				})
+			}
+		}
+		// File Patterns
+		for _, pattern := range s.rePatterns {
 			repoFilePath := fmt.Sprintf("%s/%s", diff.RepoURL, diff.FilePath)
 			if !pattern.FileRe.MatchString(repoFilePath) {
 				continue
