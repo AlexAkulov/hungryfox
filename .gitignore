@@ -7,3 +7,5 @@ coverage.txt
 
 state.yml
 leaks.json
+go.sum
+
