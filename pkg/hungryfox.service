@@ -16,6 +16,8 @@ LimitNOFILE=4096
 Nice=19
 IOSchedulingClass=3
 IOSchedulingPriority=7
+StandardOutput=journal
+StandardError=journal
 
 [Install]
 WantedBy=multi-user.target
