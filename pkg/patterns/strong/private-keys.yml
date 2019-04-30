@@ -1,8 +1,11 @@
-- name: SSH Private Key
-  content: (?i)^[\s-]*BEGIN (RSA |DSA |OPENSSH ){0,1}PRIVATE KEY[\s-]*$
+- name: Private Key
+  content: (?i)^[\s-]*BEGIN (PGP |RSA |DSA |ES |OPENSSH )?PRIVATE KEY( BLOCK)?[\s-]*$
 
 - name: Putty Private Key
   content: (?i)^\s*PuTTY-User-Key-File\s*$
 
 - name: certificate
   content: (?i)^[\s-]*BEGIN CERTIFICATE[\s-]*
+
+- name: gnupgp
+  file: /\.gpg$
