@@ -2,8 +2,8 @@
 - name: AWS Access Key ID
   content: AKIA[0-9A-Z]{16}
 
-- name: Redis URL with Password
-  content: (?i)redis://[^:]*:[^@]+@[\w\d.]+
+- name: URL with Password
+  content: (?i)\w+://[^:]*:[^@]+@[\w\d-.]+
 
 - name: URL Basic auth
   content: (?i)https?://[\w\d_-]+?:[\d\w_.-]+@.+
