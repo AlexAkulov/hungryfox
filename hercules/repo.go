@@ -215,16 +215,16 @@ func (r *Repo) getCommitChanges(commit *object.Commit) error {
 	if commit == nil {
 		return nil
 	}
-	defer func(){
+	defer func() {
 		if r := recover(); r != nil {
 			fmt.Println("Recovered\n", r)
 		}
 	}()
-	parrentCommit, err := commit.Parent(0)
+	parentCommit, err := commit.Parent(0)
 	if err != nil {
 		return r.getAllChanges(commit, true)
 	}
-	patch, err := parrentCommit.Patch(commit)
+	patch, err := parentCommit.Patch(commit)
 	if err != nil {
 		return err
 	}

@@ -6,7 +6,7 @@ import (
 	"github.com/AlexAkulov/hungryfox"
 	"github.com/AlexAkulov/hungryfox/config"
 	"github.com/AlexAkulov/hungryfox/helpers"
-	"github.com/AlexAkulov/hungryfox/hercules"
+	repo "github.com/AlexAkulov/hungryfox/hercules"
 	"github.com/AlexAkulov/hungryfox/repolist"
 
 	"github.com/rs/zerolog"
@@ -49,6 +49,8 @@ func (sm *ScanManager) updateScanList() {
 			sm.inspectRepoPath(inspectObject)
 		case "github":
 			sm.inspectGithub(inspectObject)
+		case "gitlab":
+			sm.inspectGitlab(inspectObject)
 		default:
 			sm.Log.Error().Str("type", inspectObject.Type).Msg("unsupported type")
 		}
