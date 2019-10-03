@@ -1,6 +1,8 @@
 package hungryfox
 
-import "time"
+import (
+	"time"
+)
 
 type Diff struct {
 	CommitHash  string
@@ -26,7 +28,7 @@ type RepoLocation struct {
 }
 
 type RepoState struct {
-	Refs     []string
+	Refs []string
 }
 
 type ScanStatus struct {
@@ -36,11 +38,11 @@ type ScanStatus struct {
 }
 
 type Repo struct {
-	Options RepoOptions
+	Options  RepoOptions
 	Location RepoLocation
-	State RepoState
-	Scan ScanStatus
-	Repo IRepo
+	State    RepoState
+	Scan     ScanStatus
+	Repo     IRepo
 }
 
 type IMessageSender interface {
@@ -49,11 +51,8 @@ type IMessageSender interface {
 	Stop() error
 }
 
-type ILeakSearcher interface {
-	Start() error
-	SetConfig() error
-	Search(Diff)
-	Stop() error
+type IDiffAnalyzer interface {
+	Analyze(*Diff)
 }
 
 type IRepo interface {

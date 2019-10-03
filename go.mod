@@ -24,12 +24,10 @@ require (
 	github.com/google/go-github v17.0.0+incompatible
 	github.com/gopherjs/gopherjs v0.0.0-20190411002643-bd77b112433e // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
-	github.com/petermattis/goid v0.0.0-20180202154549-b0b1615b78e5 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20190321074620-2f0d2b0e0001 // indirect
 	github.com/rs/zerolog v1.14.3
-	github.com/sasha-s/go-deadlock v0.2.0
 	github.com/smartystreets/assertions v0.0.0-20190401211740-f487f9de1cd3 // indirect
-	github.com/smartystreets/goconvey v0.0.0-20190330032615-68dc04aab96a
+	github.com/smartystreets/goconvey v0.0.0-20190731233626-505e41936337
 	github.com/xanzy/go-gitlab v0.20.1
 	github.com/xanzy/ssh-agent v0.2.1 // indirect
 	golang.org/x/crypto v0.0.0-20190426145343-a29dc8fdc734 // indirect
@@ -47,3 +45,5 @@ require (
 	gopkg.in/yaml.v2 v2.2.2
 	upper.io/db.v3 v3.5.7+incompatible
 )
+
+go 1.13

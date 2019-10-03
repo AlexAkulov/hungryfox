@@ -5,6 +5,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/AlexAkulov/hungryfox"
 )
 
 func PrettyDuration(d time.Duration) string {
@@ -44,4 +46,18 @@ func ParseInt64(value string) int64 {
 		return 0
 	}
 	return int64(parsed)
+}
+
+//TODO: pretty fragile, rewrite/get rid of
+func Duplicate(channel <-chan *hungryfox.Diff, buffLen int) (<-chan *hungryfox.Diff, <-chan *hungryfox.Diff) {
+	ch1, ch2 := make(chan *hungryfox.Diff, buffLen), make(chan *hungryfox.Diff, buffLen)
+	go func() {
+		for val := range channel {
+			ch1 <- val
+			ch2 <- val
+		}
+		close(ch1)
+		close(ch2)
+	}()
+	return ch1, ch2
 }

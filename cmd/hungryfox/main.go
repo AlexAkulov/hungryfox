@@ -98,7 +98,7 @@ func main() {
 	}
 	logger.Debug().Str("service", "leaks router").Msg("strated")
 
-	logger.Debug().Str("service", "leaks searcher").Msg("start")
+	logger.Debug().Str("service", "analyzer dispatcher").Msg("start")
 
 	numCPUs := runtime.NumCPU() - 1
 	if numCPUs < 1 {
@@ -107,13 +107,16 @@ func main() {
 	if conf.Common.Workers > 0 {
 		numCPUs = conf.Common.Workers
 	}
-	leakSearcher := &searcher.Searcher{
+	if numCPUs > 1 {
+		numCPUs = numCPUs / 2 //TODO
+	}
+	analyzerDispatcher := &searcher.AnalyzerDispatcher{
 		Workers:     numCPUs,
 		DiffChannel: diffChannel,
 		LeakChannel: leakChannel,
 		Log:         logger,
 	}
-	if err := leakSearcher.Start(conf); err != nil {
+	if err := analyzerDispatcher.Start(conf); err != nil {
 		logger.Error().Str("service", "leaks searcher").Str("error", err.Error()).Msg("fail")
 		os.Exit(1)
 	}
@@ -147,7 +150,7 @@ func main() {
 		for range statusTicker.C {
 			r := scanManager.Status()
 			if r != nil {
-				l := leakSearcher.Status(r.Location.URL)
+				l := analyzerDispatcher.Status(r.Location.URL)
 				logger.Info().Int("leaks", l.LeaksFound).Int("leaks_filtred", l.LeaksFiltred).Str("duration", helpers.PrettyDuration(time.Since(r.Scan.StartTime))).Str("repo", r.Location.URL).Msg("scan")
 				continue
 			}
@@ -178,7 +181,7 @@ func main() {
 			logger.Error().Str("error", err.Error()).Msg("can't update config")
 			continue
 		}
-		leakSearcher.Update(newConf)
+		analyzerDispatcher.Update(newConf)
 		scanManager.SetConfig(newConf)
 		logger.Info().Msg("settings reloaded")
 	}
@@ -188,7 +191,7 @@ func main() {
 	}
 	logger.Debug().Str("service", "scan manager").Msg("stopped")
 
-	if err := leakSearcher.Stop(); err != nil {
+	if err := analyzerDispatcher.Stop(); err != nil {
 		logger.Error().Str("error", err.Error()).Str("service", "leak searcher").Msg("can't stop")
 	}
 	logger.Debug().Str("service", "leak searcher").Msg("stopped")
