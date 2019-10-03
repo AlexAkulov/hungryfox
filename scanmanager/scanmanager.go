@@ -156,7 +156,11 @@ func (sm *ScanManager) ScanRepo(index int) {
 }
 
 func openScanClose(r hungryfox.Repo) (err error) {
-	defer func() { err = recover().(error) }()
+	defer func() {
+		if e := recover(); e != nil {
+			err = e.(error)
+		}
+	}()
 	if err := r.Repo.Open(); err != nil {
 		return err
 	}
