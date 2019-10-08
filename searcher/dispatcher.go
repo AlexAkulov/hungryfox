@@ -41,7 +41,7 @@ type AnalyzerDispatcher struct {
 	Log         zerolog.Logger
 
 	updateConfigChan chan<- *config.Config
-	updateStatsChan  <-chan statsDiff
+	updateStatsChan  chan statsDiff
 	config           *config.Config
 	stats            map[string]RepoStats
 	leakMatchers     *Matchers
@@ -63,6 +63,8 @@ func (d *AnalyzerDispatcher) Start(conf *config.Config) error {
 	}
 
 	d.stats = map[string]RepoStats{}
+	d.updateStatsChan = make(chan statsDiff)
+	d.tomb.Go(d.updateStatsWorker)
 
 	leaksDiffChannel, _ := helpers.Duplicate(d.DiffChannel, 200)
 
@@ -91,9 +93,10 @@ func (d *AnalyzerDispatcher) Stop() error {
 func (d *AnalyzerDispatcher) makeLeakWorker(diffChannel <-chan *hungryfox.Diff) Worker {
 	return Worker{
 		Analyzer: &LeakAnalyzer{
-			LeakChannel: d.LeakChannel,
-			Log:         d.Log,
-			Matchers:    d.leakMatchers,
+			LeakChannel:  d.LeakChannel,
+			Log:          d.Log,
+			Matchers:     d.leakMatchers,
+			StatsChannel: d.updateStatsChan,
 		},
 		DiffChannel: diffChannel,
 		Log:         d.Log,
@@ -199,7 +202,13 @@ func compilePatterns(configPatterns []config.Pattern) ([]patternType, error) {
 	return result, nil
 }
 
-func (d AnalyzerDispatcher) receiveStatsWorker() {
+func (d *AnalyzerDispatcher) updateStatsWorker() (err error) {
+	defer func() {
+		e := recover()
+		if e != nil {
+			err = err.(error)
+		}
+	}()
 	for {
 		diff := <-d.updateStatsChan
 		{
