@@ -6,10 +6,11 @@ import (
 	"path/filepath"
 	"regexp"
 
-	"github.com/AlexAkulov/hungryfox/helpers"
+	"github.com/AlexAkulov/hungryfox/deps"
 
-	"github.com/AlexAkulov/hungryfox"
+	. "github.com/AlexAkulov/hungryfox"
 	"github.com/AlexAkulov/hungryfox/config"
+	"github.com/AlexAkulov/hungryfox/helpers"
 	"github.com/rs/zerolog"
 	"gopkg.in/tomb.v2"
 	"gopkg.in/yaml.v2"
@@ -35,10 +36,11 @@ type statsDiff struct {
 }
 
 type AnalyzerDispatcher struct {
-	Workers     int //TODO: separate workers config
-	DiffChannel <-chan *hungryfox.Diff
-	LeakChannel chan<- *hungryfox.Leak
-	Log         zerolog.Logger
+	Workers                int //TODO: separate workers config
+	DiffChannel            <-chan *Diff
+	LeakChannel            chan<- *Leak
+	VulnerabilitiesChannel chan<- *VulnerableDependency
+	Log                    zerolog.Logger
 
 	updateConfigChan chan<- *config.Config
 	updateStatsChan  chan statsDiff
@@ -66,13 +68,16 @@ func (d *AnalyzerDispatcher) Start(conf *config.Config) error {
 	d.updateStatsChan = make(chan statsDiff)
 	d.tomb.Go(d.updateStatsWorker)
 
-	leaksDiffChannel, depsDiffChannel := helpers.Duplicate(d.DiffChannel, 10)
+	leaksDiffChannel, depsDiffChannel := helpers.Duplicate(d.DiffChannel, 200)
+	depsChannel := make(chan *Dependency)
 
 	for i := 0; i < d.Workers; i++ {
 		leaksWorker := d.makeLeakWorker(leaksDiffChannel)
 		d.tomb.Go(leaksWorker.Run)
-		depsWorker := d.makeDepsWorker(depsDiffChannel)
+		depsWorker := d.makeDepsWorker(depsDiffChannel, depsChannel)
 		d.tomb.Go(depsWorker.Run)
+		vulnsWorker := d.makeVulnsWorker(depsChannel, d.VulnerabilitiesChannel)
+		d.tomb.Go(vulnsWorker.Run)
 	}
 	return nil
 }
@@ -89,8 +94,8 @@ func (d *AnalyzerDispatcher) Stop() error {
 	return d.tomb.Wait()
 }
 
-func (d *AnalyzerDispatcher) makeLeakWorker(diffChannel <-chan *hungryfox.Diff) Worker {
-	return Worker{
+func (d *AnalyzerDispatcher) makeLeakWorker(diffChannel <-chan *Diff) *Worker {
+	return &Worker{
 		Analyzer: &LeakAnalyzer{
 			LeakChannel:  d.LeakChannel,
 			Log:          d.Log,
@@ -103,19 +108,26 @@ func (d *AnalyzerDispatcher) makeLeakWorker(diffChannel <-chan *hungryfox.Diff) 
 	}
 }
 
-func (d *AnalyzerDispatcher) makeDepsWorker(diffChannel <-chan *hungryfox.Diff) Worker {
-	nilChannel := make(chan *hungryfox.Dependency)
-	go func() {
-		for {
-			<-nilChannel
-		}
-	}()
-	return Worker{
+func (d *AnalyzerDispatcher) makeDepsWorker(diffChannel <-chan *Diff, depsChannel chan<- *Dependency) *Worker {
+	return &Worker{
 		Analyzer: &DepsAnalyzer{
-			DepsChannel: nilChannel, //TODO
+			DepsChannel: depsChannel,
 			Log:         d.Log,
 		},
 		DiffChannel: diffChannel,
+		Log:         d.Log,
+		Dying:       d.tomb.Dying(),
+	}
+}
+
+func (d *AnalyzerDispatcher) makeVulnsWorker(depsChannel <-chan *Dependency, vulnsChannel chan<- *VulnerableDependency) *VulnerabilitiesWorker {
+	ossCreds := deps.Credentials{
+		User:     d.config.Exposures.OssIndexUser,
+		Password: d.config.Exposures.OssIndexPassword,
+	}
+	return &VulnerabilitiesWorker{
+		Searcher:    deps.NewSearcher(vulnsChannel, d.Log, ossCreds),
+		DepsChannel: depsChannel,
 		Log:         d.Log,
 		Dying:       d.tomb.Dying(),
 	}

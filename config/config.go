@@ -24,11 +24,12 @@ type SMTP struct {
 }
 
 type Config struct {
-	Common   *Common   `yaml:"common"`
-	Inspect  []Inspect `yaml:"inspect"`
-	Patterns []Pattern `yaml:"patterns"`
-	Filters  []Pattern `yaml:"filters"`
-	SMTP     *SMTP     `yaml:"smtp"`
+	Common    *Common    `yaml:"common"`
+	Inspect   []Inspect  `yaml:"inspect"`
+	Patterns  []Pattern  `yaml:"patterns"`
+	Filters   []Pattern  `yaml:"filters"`
+	SMTP      *SMTP      `yaml:"smtp"`
+	Exposures *Exposures `yaml:"exposures"`
 }
 
 type Inspect struct {
@@ -51,6 +52,7 @@ type Common struct {
 	HistoryPastLimitString string `yaml:"history_limit"`
 	LogLevel               string `yaml:"log_level"`
 	LeaksFile              string `yaml:"leaks_file"`
+	VulnerabilitiesFile    string `yaml:"vulnerabilities_file"`
 	ScanIntervalString     string `yaml:"scan_interval"`
 	PatternsPath           string `yaml:"patterns_path"`
 	FiltresPath            string `yaml:"filters_path"`
@@ -65,11 +67,17 @@ type Pattern struct {
 	Content string `yaml:"content"`
 }
 
+type Exposures struct {
+	OssIndexUser     string `yaml:"oss_index_user"`
+	OssIndexPassword string `yaml:"oss_index_password"`
+}
+
 func defaultConfig() *Config {
 	return &Config{
 		SMTP: &SMTP{
 			Delay: "5m",
 		},
+		Exposures: &Exposures{},
 	}
 }
 

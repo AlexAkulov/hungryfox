@@ -14,9 +14,10 @@ import (
 )
 
 type LeaksRouter struct {
-	LeakChannel <-chan *hungryfox.Leak
-	Config      *config.Config
-	Log         zerolog.Logger
+	LeakChannel  <-chan *hungryfox.Leak
+	VulnsChannel <-chan *hungryfox.VulnerableDependency
+	Config       *config.Config
+	Log          zerolog.Logger
 
 	senders map[string]hungryfox.IMessageSender
 	tomb    tomb.Tomb
@@ -45,13 +46,14 @@ func (r *LeaksRouter) Start() error {
 	}
 	r.senders["file"] = &file.File{
 		LeaksFile: r.Config.Common.LeaksFile,
+		DepsFile:  r.Config.Common.VulnerabilitiesFile,
 	}
 
 	for senderName, sender := range r.senders {
 		if err := sender.Start(); err != nil {
 			return err
 		}
-		r.Log.Debug().Str("service", senderName).Msg("strated")
+		r.Log.Debug().Str("service", senderName).Msg("started")
 	}
 
 	r.tomb.Go(func() error {
@@ -62,6 +64,10 @@ func (r *LeaksRouter) Start() error {
 			case leak := <-r.LeakChannel:
 				for _, sender := range r.senders {
 					sender.Send(*leak)
+				}
+			case vuln := <-r.VulnsChannel:
+				for _, sender := range r.senders {
+					sender.Send(*vuln)
 				}
 			}
 		}

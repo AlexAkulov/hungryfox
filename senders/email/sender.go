@@ -58,7 +58,10 @@ func (b *batch) Fire(notifier muster.Notifier) {
 }
 
 func (b *batch) Add(item interface{}) {
-	leak := item.(hungryfox.Leak)
+	leak, ok := item.(hungryfox.Leak)
+	if !ok {
+		return //TODO: implement sending vulnerability reports
+	}
 	leak.LeakString = strings.TrimSpace(leak.LeakString)
 	if len(leak.LeakString) > 512 {
 		leak.LeakString = "too long"

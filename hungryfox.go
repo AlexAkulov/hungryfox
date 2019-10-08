@@ -2,6 +2,8 @@ package hungryfox
 
 import (
 	"time"
+
+	"github.com/package-url/packageurl-go"
 )
 
 type Diff struct {
@@ -46,15 +48,13 @@ type Repo struct {
 }
 
 type Dependency struct {
-	Ecosystem string
-	Name      string
-	Version   string
-	*Diff
+	Purl packageurl.PackageURL
+	Diff
 }
 
 type IMessageSender interface {
 	Start() error
-	Send(Leak) error
+	Send(interface{}) error
 	Stop() error
 }
 
@@ -76,6 +76,10 @@ type IStateManager interface {
 	Save(Repo)
 }
 
+type IVulnerabilitySearcher interface {
+	Search([]Dependency) error
+}
+
 type Leak struct {
 	PatternName  string    `json:"pattern_name"`
 	Regexp       string    `json:"pattern"`
@@ -88,4 +92,31 @@ type Leak struct {
 	Line         int       `json:"line"`
 	CommitAuthor string    `json:"author"`
 	CommitEmail  string    `json:"email"`
+}
+
+type VulnerableDependency struct {
+	Vulnerabilities []Vulnerability `json:"vulnerabilities"`
+
+	DependencyName string    `json:"dep_name"`
+	Version        string    `json:"dep_version"`
+	FilePath       string    `json:"filepath"`
+	RepoPath       string    `json:"repo_path"`
+	RepoURL        string    `json:"repo_url"`
+	CommitHash     string    `json:"commit"`
+	TimeStamp      time.Time `json:"ts"`
+	CommitAuthor   string    `json:"author"`
+	CommitEmail    string    `json:"email"`
+}
+
+type Vulnerability struct {
+	Source        string   `json:"source"`
+	Id            string   `json:"id"`
+	Title         string   `json:"title"`
+	Description   string   `json:"description"`
+	CvssScore     float32  `json:"cvssScore"`
+	CvssVector    string   `json:"cvssVector"`
+	Cwe           string   `json:"cwe"`
+	Cve           string   `json:"cve"`
+	Reference     string   `json:"reference"`
+	VersionRanges []string `json:"versionRanges"`
 }

@@ -63,6 +63,7 @@ func main() {
 
 	diffChannel := make(chan *hungryfox.Diff, 100)
 	leakChannel := make(chan *hungryfox.Leak, 1)
+	vulnsChannel := make(chan *hungryfox.VulnerableDependency, 1)
 
 	if *skipScan {
 		stateManager := &filestate.StateManager{
@@ -88,15 +89,16 @@ func main() {
 
 	logger.Debug().Str("service", "leaks router").Msg("start")
 	leakRouter := &router.LeaksRouter{
-		LeakChannel: leakChannel,
-		Config:      conf,
-		Log:         logger,
+		LeakChannel:  leakChannel,
+		VulnsChannel: vulnsChannel,
+		Config:       conf,
+		Log:          logger,
 	}
 	if err := leakRouter.Start(); err != nil {
 		logger.Error().Str("service", "leaks router").Str("error", err.Error()).Msg("fail")
 		os.Exit(1)
 	}
-	logger.Debug().Str("service", "leaks router").Msg("strated")
+	logger.Debug().Str("service", "leaks router").Msg("started")
 
 	logger.Debug().Str("service", "analyzer dispatcher").Msg("start")
 
@@ -111,10 +113,11 @@ func main() {
 		numCPUs = numCPUs / 2 //TODO
 	}
 	analyzerDispatcher := &searcher.AnalyzerDispatcher{
-		Workers:     numCPUs,
-		DiffChannel: diffChannel,
-		LeakChannel: leakChannel,
-		Log:         logger,
+		Workers:                numCPUs,
+		DiffChannel:            diffChannel,
+		LeakChannel:            leakChannel,
+		VulnerabilitiesChannel: vulnsChannel,
+		Log:                    logger,
 	}
 	if err := analyzerDispatcher.Start(conf); err != nil {
 		logger.Error().Str("service", "leaks searcher").Str("error", err.Error()).Msg("fail")

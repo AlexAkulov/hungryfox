@@ -1,7 +1,8 @@
 module github.com/AlexAkulov/hungryfox
 
 require (
-	github.com/A1bemuth/deputy v0.0.0-20191007092925-b1cbdb4d5ea6
+	github.com/A1bemuth/deputy v0.0.0-20191008094122-04677ab0d0c4
+	github.com/A1bemuth/go-oss-index v0.0.0-20191009081345-39a725b12e97
 	github.com/cznic/b v0.0.0-20181122101859-a26611c4d92d // indirect
 	github.com/cznic/fileutil v0.0.0-20181122101858-4d67cfea8c87 // indirect
 	github.com/cznic/golex v0.0.0-20181122101858-9c343928389c // indirect
@@ -25,6 +26,7 @@ require (
 	github.com/google/go-github v17.0.0+incompatible
 	github.com/gopherjs/gopherjs v0.0.0-20190411002643-bd77b112433e // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
+	github.com/package-url/packageurl-go v0.1.0
 	github.com/remyoudompheng/bigfft v0.0.0-20190321074620-2f0d2b0e0001 // indirect
 	github.com/rs/zerolog v1.14.3
 	github.com/smartystreets/assertions v0.0.0-20190401211740-f487f9de1cd3 // indirect

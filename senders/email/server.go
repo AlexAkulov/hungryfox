@@ -7,8 +7,6 @@ import (
 	"net/smtp"
 	"time"
 
-	"github.com/AlexAkulov/hungryfox"
-
 	"github.com/facebookgo/muster"
 	"github.com/rs/zerolog"
 )
@@ -76,7 +74,7 @@ func (s *Sender) Stop() error {
 }
 
 // Send - send leaks
-func (s *Sender) Send(leak hungryfox.Leak) error {
-	s.muster.Work <- leak
+func (s *Sender) Send(item interface{}) error {
+	s.muster.Work <- item
 	return nil
 }
