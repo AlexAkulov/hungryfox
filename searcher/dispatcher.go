@@ -66,14 +66,13 @@ func (d *AnalyzerDispatcher) Start(conf *config.Config) error {
 	d.updateStatsChan = make(chan statsDiff)
 	d.tomb.Go(d.updateStatsWorker)
 
-	leaksDiffChannel, _ := helpers.Duplicate(d.DiffChannel, 200)
+	leaksDiffChannel, depsDiffChannel := helpers.Duplicate(d.DiffChannel, 10)
 
 	for i := 0; i < d.Workers; i++ {
 		leaksWorker := d.makeLeakWorker(leaksDiffChannel)
 		d.tomb.Go(leaksWorker.Run)
-		// TODO
-		// depsWorker := d.makeDepsWorker(depsDiffChannel)
-		// d.tomb.Go(depsWorker.Run)
+		depsWorker := d.makeDepsWorker(depsDiffChannel)
+		d.tomb.Go(depsWorker.Run)
 	}
 	return nil
 }
@@ -100,16 +99,25 @@ func (d *AnalyzerDispatcher) makeLeakWorker(diffChannel <-chan *hungryfox.Diff) 
 		},
 		DiffChannel: diffChannel,
 		Log:         d.Log,
-		Done:        d.tomb.Dying(),
+		Dying:       d.tomb.Dying(),
 	}
 }
 
 func (d *AnalyzerDispatcher) makeDepsWorker(diffChannel <-chan *hungryfox.Diff) Worker {
+	nilChannel := make(chan *hungryfox.Dependency)
+	go func() {
+		for {
+			<-nilChannel
+		}
+	}()
 	return Worker{
-		Analyzer:    nil, //TODO
+		Analyzer: &DepsAnalyzer{
+			DepsChannel: nilChannel, //TODO
+			Log:         d.Log,
+		},
 		DiffChannel: diffChannel,
 		Log:         d.Log,
-		Done:        d.tomb.Dying(),
+		Dying:       d.tomb.Dying(),
 	}
 }
 

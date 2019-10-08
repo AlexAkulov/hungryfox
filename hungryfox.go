@@ -45,6 +45,13 @@ type Repo struct {
 	Repo     IRepo
 }
 
+type Dependency struct {
+	Ecosystem string
+	Name      string
+	Version   string
+	*Diff
+}
+
 type IMessageSender interface {
 	Start() error
 	Send(Leak) error

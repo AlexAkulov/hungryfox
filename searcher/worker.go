@@ -3,20 +3,21 @@ package searcher
 import (
 	"github.com/AlexAkulov/hungryfox"
 	"github.com/rs/zerolog"
+	"gopkg.in/tomb.v2"
 )
 
 type Worker struct {
 	Analyzer    hungryfox.IDiffAnalyzer
 	DiffChannel <-chan *hungryfox.Diff
 	Log         zerolog.Logger
-	Done        <-chan struct{}
+	Dying       <-chan struct{}
 }
 
 func (w *Worker) Run() error {
 	for {
 		select {
-		case <-w.Done:
-			return nil
+		case <-w.Dying:
+			return tomb.ErrDying
 		case diff := <-w.DiffChannel:
 			w.Analyzer.Analyze(diff)
 		}

@@ -2,6 +2,7 @@ package repo
 
 import (
 	"fmt"
+	"math"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -10,6 +11,7 @@ import (
 	"time"
 
 	"github.com/AlexAkulov/hungryfox"
+	"github.com/rs/zerolog"
 
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing"
@@ -25,6 +27,7 @@ type Repo struct {
 	CloneURL         string
 	URL              string
 	AllowUpdate      bool
+	Log              zerolog.Logger
 	repository       *git.Repository
 	scannedHash      map[string]struct{}
 	commitsTotal     int
@@ -33,7 +36,8 @@ type Repo struct {
 
 func (r *Repo) GetProgress() int {
 	if r.commitsTotal > 0 {
-		return (r.commitsScanned / r.commitsTotal) * 1000
+		progress := float64(r.commitsScanned) / float64(r.commitsTotal)
+		return int(math.Floor(progress * 100))
 	}
 	return -1
 }
@@ -154,12 +158,15 @@ func (r *Repo) Scan() error {
 	if err != nil {
 		return err
 	}
+	r.Log.Debug().Str("repo", r.URL).Int("count", len(commits)).Msg("commits to scan")
 	for i, commit := range commits {
 		r.commitsScanned = i + 1
 		if commit.Committer.When.Before(r.HistoryPastLimit) {
+			r.Log.Debug().Str("repo", r.URL).Str("hash", commit.Hash.String()).Str("date", commit.Committer.When.String()).Msg("getting whole commit tree")
 			r.getAllChanges(commit, false)
 			break
 		}
+		r.Log.Debug().Str("repo", r.URL).Str("hash", commit.Hash.String()).Str("date", commit.Committer.When.String()).Msg("getting commit diff")
 		r.getCommitChanges(commit)
 	}
 	return nil

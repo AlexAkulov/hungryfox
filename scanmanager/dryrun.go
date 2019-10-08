@@ -2,7 +2,7 @@ package scanmanager
 
 import (
 	"github.com/AlexAkulov/hungryfox"
-	"github.com/AlexAkulov/hungryfox/hercules"
+	"github.com/AlexAkulov/hungryfox/repo"
 )
 
 func (sm *ScanManager) DryRun() {

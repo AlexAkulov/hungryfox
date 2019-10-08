@@ -1,6 +1,7 @@
 module github.com/AlexAkulov/hungryfox
 
 require (
+	github.com/A1bemuth/deputy v0.0.0-20191007092925-b1cbdb4d5ea6
 	github.com/cznic/b v0.0.0-20181122101859-a26611c4d92d // indirect
 	github.com/cznic/fileutil v0.0.0-20181122101858-4d67cfea8c87 // indirect
 	github.com/cznic/golex v0.0.0-20181122101858-9c343928389c // indirect
