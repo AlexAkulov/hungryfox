@@ -23,9 +23,9 @@ func (a DepsAnalyzer) Analyze(diff *hungryfox.Diff) {
 		for _, dep := range deps {
 			dependency := hungryfox.Dependency{
 				Purl: packageurl.PackageURL{
-					Namespace: dep.Ecosystem,
-					Name:      dep.Name,
-					Version:   dep.Version,
+					Type:    dep.Ecosystem,
+					Name:    dep.Name,
+					Version: dep.Version,
 				},
 				Diff: *diff,
 			}

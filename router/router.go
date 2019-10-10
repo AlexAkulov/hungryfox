@@ -30,7 +30,8 @@ func (r *LeaksRouter) Start() error {
 	}
 	r.senders = map[string]hungryfox.IMessageSender{}
 	if r.Config.SMTP.Enable {
-		r.senders["email"] = &email.Sender{
+		leaksSender := email.Sender{
+			Kind:         email.Leaks,
 			AuditorEmail: r.Config.SMTP.Recipient,
 			Config: &email.Config{
 				From:        r.Config.SMTP.From,
@@ -43,6 +44,10 @@ func (r *LeaksRouter) Start() error {
 			},
 			Log: r.Log,
 		}
+		exposuresSender := leaksSender
+		exposuresSender.Kind = email.Exposures
+		r.senders["leaks-email"] = &leaksSender
+		r.senders["exposures-email"] = &exposuresSender
 	}
 	r.senders["file"] = &file.File{
 		LeaksFile: r.Config.Common.LeaksFile,

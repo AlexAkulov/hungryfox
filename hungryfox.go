@@ -54,6 +54,7 @@ type Dependency struct {
 
 type IMessageSender interface {
 	Start() error
+	Accepts(interface{}) bool
 	Send(interface{}) error
 	Stop() error
 }

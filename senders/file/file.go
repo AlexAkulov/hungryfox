@@ -20,6 +20,10 @@ func (self *File) Stop() error {
 	return nil
 }
 
+func (self *File) Accepts(interface{}) bool {
+	return true
+}
+
 func (self *File) Send(item interface{}) error {
 	switch msg := item.(type) {
 	case hungryfox.Leak:

@@ -1,6 +1,6 @@
 package email
 
-const defaultTemplate = `
+const exposuresTemplate = `
 <!DOCTYPE html>
 <html>
 
@@ -119,10 +119,9 @@ const defaultTemplate = `
           <!-- TEXT -->
           <tr>
             <td bgcolor="#ffffff" align="left" style="padding: 30px 30px 0px 30px; font-size: 16px;">
-              <p>Кажется, мы нашли что-то похожее на пароль, токен или ключ.</p>
-              <p>Как удалить пароль из репозитория написано <a href="https://help.github.com/articles/removing-sensitive-data-from-a-repository/" style="color: rgb(216, 119, 0);">тут</a>.</p>
+              <p>Обнаружена зависимость, имеющая известную уязвимость</p>
               <p>Если это ошибка, ответь на это письмо чтобы мы добавили это в исключения.</p>
-              <p> Найдено {{ .LeaksCount }} утечек в {{ .FilesCount }} файлах.
+              <p> Найдено {{ .ExposuresCount }} уязвимых зависимостей в {{ .FilesCount }} файлах.</p>
             </td>
           </tr>
       </td>
@@ -133,17 +132,24 @@ const defaultTemplate = `
           <hr align="center" size="1" color="#111111" />
         </td>
       </tr>
-      <!-- LIST OF LEAKS-->
+      <!-- LIST OF VULNERABILITIES -->
       {{ range .Items }}
       <tr>
         <td bgcolor="#ffffff" align="left" style="padding: 0px 30px 0px 30px; font-size: 14px;">
-          <p><a style="color: rgb(216, 119, 0); font-size: 14px;" href="{{ .RepoURL }}/blob/{{ .CommitHash }}/{{ .FilePath }}">{{ .FilePath }}</a>
+          <p><a style="color: rgb(216, 119, 0); font-size: 14px;" href="{{ .RepoURL }}/blob/{{ .CommitHash }}/{{ .FilePath }}">{{ .FilePath }}</a> : {{ .DependencyName }}, {{ .Version }}
           </p>
-          <p style="background-color:#f9f9f9; font-size: 14px; font-family: 'Courier New'; color: #111111; font-weight:bold;">{{ .LeakString }}</p>
+              {{ range .Vulnerabilities }}
+                <a style="color: rgb(216, 119, 0); font-size: 14px;" href="{{ .Reference }}">{{ .Title }}</a>, CVSS score: {{ .CvssScore }}
+                <div>
+                    <details>
+                        <summary>Description</summary>
+                        <div>{{ .Description }}</div>
+                    </details>
+                </div>
+              {{ end }}
           <p style="font-size: 12px; text-align: right;">Commit
             <i>{{ .CommitHash }}</i> by
             <a style="color:rgb(216, 119, 0);" href="mailto:{{ .CommitEmail }}">{{ .CommitAuthor }}</a> ({{ .TimeStamp.Format "15:04:05 02.01.2006" }})</p>
-
         </td>
       </tr>
       {{ end }}

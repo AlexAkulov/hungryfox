@@ -3,81 +3,107 @@ package email
 import (
 	"crypto/tls"
 	"fmt"
+	"html/template"
 	"io"
 	"net/smtp"
 	"strings"
+	"time"
 
 	"github.com/AlexAkulov/hungryfox"
-
 	"github.com/facebookgo/muster"
+	"github.com/rs/zerolog"
 	"gopkg.in/gomail.v2"
 )
 
-type mailTemplateStruct struct {
-	LeaksCount int
-	FilesCount int
-	Repos      []*mailTemplateRepoStruct
+type Kind int
+
+const (
+	Leaks Kind = iota
+	Exposures
+)
+
+// Config - SMTP settings
+type Config struct {
+	From        string
+	SMTPHost    string
+	SMTPPort    int
+	InsecureTLS bool
+	Username    string
+	Password    string
+	Delay       time.Duration
 }
 
-type mailTemplateRepoStruct struct {
-	RepoURL string
-	Items   []hungryfox.Leak
+// Sender - send email
+type Sender struct {
+	Kind
+	AuditorEmail string
+	Config       *Config
+	Log          zerolog.Logger
+	template     *template.Template
+	muster       *muster.Client
 }
 
-func (s *Sender) batchMaker() muster.Batch {
-	return &batch{
-		Sender: s,
-		Repos:  map[string]*mailTemplateRepoStruct{},
-		Files:  map[string]struct{}{},
+func (s *Sender) Accepts(item interface{}) bool {
+	switch item.(type) {
+	case hungryfox.Leak:
+		return s.Kind == Leaks
+	case hungryfox.VulnerableDependency:
+		return s.Kind == Exposures
+	default:
+		return false
 	}
 }
 
-type batch struct {
-	LeaksCount int
-	Repos      map[string]*mailTemplateRepoStruct
-	Files      map[string]struct{}
-	Sender     *Sender
+// Send - send leaks
+func (s *Sender) Send(item interface{}) error {
+	s.muster.Work <- item
+	return nil
 }
 
-func (b *batch) Fire(notifier muster.Notifier) {
-	defer notifier.Done()
-	if b.LeaksCount < 1 {
-		return
-	}
-	messageData := &mailTemplateStruct{
-		FilesCount: len(b.Files),
-		LeaksCount: b.LeaksCount,
-	}
-	for _, repo := range b.Repos {
-		messageData.Repos = append(messageData.Repos, repo)
-	}
-	err := b.Sender.sendMessage(b.Sender.AuditorEmail, messageData)
+// Start - start sender
+func (s *Sender) Start() error {
+	t, err := smtp.Dial(fmt.Sprintf("%s:%d", s.Config.SMTPHost, s.Config.SMTPPort))
 	if err != nil {
-		b.Sender.Log.Error().Str("error", err.Error()).Msg("can't send email")
+		return err
 	}
-}
-
-func (b *batch) Add(item interface{}) {
-	leak, ok := item.(hungryfox.Leak)
-	if !ok {
-		return //TODO: implement sending vulnerability reports
+	defer t.Close()
+	// Test TLS handshake
+	if err := t.StartTLS(&tls.Config{
+		InsecureSkipVerify: s.Config.InsecureTLS,
+		ServerName:         s.Config.SMTPHost,
+	}); err != nil {
+		return err
 	}
-	leak.LeakString = strings.TrimSpace(leak.LeakString)
-	if len(leak.LeakString) > 512 {
-		leak.LeakString = "too long"
-	}
-	if b.Repos[leak.RepoURL] == nil {
-		b.Repos[leak.RepoURL] = &mailTemplateRepoStruct{
-			RepoURL: leak.RepoURL,
-			Items:   []hungryfox.Leak{},
+	// Test authentication
+	if s.Config.Password != "" {
+		if err := t.Auth(smtp.PlainAuth(
+			"",
+			s.Config.Username,
+			s.Config.Password,
+			s.Config.SMTPHost,
+		)); err != nil {
+			return err
 		}
 	}
-	b.Repos[leak.RepoURL].Items = append(b.Repos[leak.RepoURL].Items, leak)
-	b.Files[fmt.Sprintf("%s/%s", leak.RepoURL, leak.FilePath)] = struct{}{}
-	b.LeaksCount++
+	if s.template, err = s.getTemplate(); err != nil {
+		return err
+	}
+	var batchMaker func() muster.Batch
+	if s.Kind == Leaks {
+		batchMaker = s.leakBatchMaker
+	} else {
+		batchMaker = s.exposuresBatchMaker
+	}
+	s.muster = &muster.Client{
+		MaxBatchSize:         100,
+		MaxConcurrentBatches: 1,
+		BatchTimeout:         s.Config.Delay,
+		BatchMaker:           batchMaker,
+	}
+	return s.muster.Start()
 }
 
-func (s *Sender) sendMessage(recipient string, messageData *mailTemplateStruct) error {
+func (s *Sender) sendMessage(recipient string, subject string, messageData interface{}) error {
 	d := gomail.Dialer{
 		Host: s.Config.SMTPHost,
 		Port: s.Config.SMTPPort,
@@ -98,15 +124,22 @@ func (s *Sender) sendMessage(recipient string, messageData *mailTemplateStruct) 
 	m.SetHeader("From", s.Config.From)
 	m.SetHeader("To", strings.Split(recipient, ",")...)
 
-	var subject string
-	if len(messageData.Repos) == 1 {
-		subject = fmt.Sprintf("Found %d leaks in %s", messageData.LeaksCount, messageData.Repos[0].RepoURL)
-	} else {
-		subject = fmt.Sprintf("Found %d leaks in %d repos", messageData.LeaksCount, len(messageData.Repos))
-	}
 	m.SetHeader("Subject", subject)
 	m.AddAlternativeWriter("text/html", func(w io.Writer) error {
 		return s.template.Execute(w, messageData)
 	})
 	return d.DialAndSend(m)
+}
+
+func (s *Sender) getTemplate() (*template.Template, error) {
+	if s.Kind == Leaks {
+		return template.New("leaksmail").Parse(leaksTemplate)
+	} else {
+		return template.New("exposuresmail").Parse(exposuresTemplate)
+	}
+}
+
+// Stop - stop sender
+func (s *Sender) Stop() error {
+	return s.muster.Stop()
 }
