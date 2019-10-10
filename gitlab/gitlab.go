@@ -16,13 +16,16 @@ type Client struct {
 
 type FetchOptions struct {
 	ExcludeNamespaces []string
+	Search            string
 }
 
 func (c *Client) FetchGroupRepos(options *FetchOptions) ([]hungryfox.RepoLocation, error) {
 	c.connect()
 	isSimple := true
+	search := options.Search
 	listOptions := &gitlab.ListProjectsOptions{
 		Simple: &isSimple,
+		Search: &search,
 		ListOptions: gitlab.ListOptions{
 			Page:    1,
 			PerPage: 100,
@@ -38,7 +41,7 @@ func (c *Client) FetchGroupRepos(options *FetchOptions) ([]hungryfox.RepoLocatio
 		}
 
 		for _, proj := range projects {
-			if !excluded[proj.Namespace.Name] && proj.Namespace.Kind == "group" {
+			if !excluded[proj.Namespace.Name] {
 				locations = append(locations, *c.toRepoLocation(proj))
 			}
 		}

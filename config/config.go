@@ -45,6 +45,7 @@ type Inspect struct {
 	Orgs              []string `yaml:"orgs"`
 	GitlabURL         string   `yaml:"gitlab_url"`
 	ExcludeNamespaces []string `yaml:"exclude_namespaces"`
+	GitlabFilter      string   `yaml:"gitlab_filter"`
 }
 
 type Common struct {

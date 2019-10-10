@@ -19,6 +19,7 @@ func (sm *ScanManager) inspectGitlab(inspect config.Inspect) error {
 
 	fetchOpts := &gitlab.FetchOptions{
 		ExcludeNamespaces: inspect.ExcludeNamespaces,
+		Search:            inspect.GitlabFilter,
 	}
 	locations, err := gitlabClient.FetchGroupRepos(fetchOpts)
 	if err != nil {
