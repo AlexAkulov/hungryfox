@@ -16,6 +16,7 @@ type Client struct {
 
 type FetchOptions struct {
 	ExcludeNamespaces []string
+	ExcludeProjects   []string
 	Search            string
 }
 
@@ -31,7 +32,8 @@ func (c *Client) FetchGroupRepos(options *FetchOptions) ([]hungryfox.RepoLocatio
 			PerPage: 100,
 		},
 	}
-	excluded := *toMap(&options.ExcludeNamespaces)
+	excludedNamespaces := toMap(options.ExcludeNamespaces)
+	excludedProjects := toMap(options.ExcludeProjects)
 	var locations []hungryfox.RepoLocation
 
 	for {
@@ -41,7 +43,7 @@ func (c *Client) FetchGroupRepos(options *FetchOptions) ([]hungryfox.RepoLocatio
 		}
 
 		for _, proj := range projects {
-			if !excluded[proj.Namespace.Name] {
+			if !excludedNamespaces[proj.Namespace.Name] && !excludedProjects[proj.PathWithNamespace] {
 				locations = append(locations, *c.toRepoLocation(proj))
 			}
 		}
@@ -70,10 +72,10 @@ func (c *Client) toRepoLocation(proj *gitlab.Project) *hungryfox.RepoLocation {
 	}
 }
 
-func toMap(arr *[]string) *map[string]bool {
+func toMap(arr []string) map[string]bool {
 	stringMap := make(map[string]bool)
-	for _, str := range *arr {
+	for _, str := range arr {
 		stringMap[str] = true
 	}
-	return &stringMap
+	return stringMap
 }

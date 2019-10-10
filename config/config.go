@@ -33,19 +33,20 @@ type Config struct {
 }
 
 type Inspect struct {
-	Type              string   `yaml:"type"`
-	Paths             []string `yaml:"paths"`
-	URL               string   `yaml:"url"`
-	Token             string   `yaml:"token"`
-	TrimPrefix        string   `yaml:"trim_prefix"`
-	TrimSuffix        string   `yaml:"trim_suffix"`
-	WorkDir           string   `yaml:"work_dir"`
-	Users             []string `yaml:"users"`
-	Repos             []string `yaml:"repos"`
-	Orgs              []string `yaml:"orgs"`
-	GitlabURL         string   `yaml:"gitlab_url"`
-	ExcludeNamespaces []string `yaml:"exclude_namespaces"`
-	GitlabFilter      string   `yaml:"gitlab_filter"`
+	Type                    string   `yaml:"type"`
+	Paths                   []string `yaml:"paths"`
+	URL                     string   `yaml:"url"`
+	Token                   string   `yaml:"token"`
+	TrimPrefix              string   `yaml:"trim_prefix"`
+	TrimSuffix              string   `yaml:"trim_suffix"`
+	WorkDir                 string   `yaml:"work_dir"`
+	Users                   []string `yaml:"users"`
+	Repos                   []string `yaml:"repos"`
+	Orgs                    []string `yaml:"orgs"`
+	GitlabURL               string   `yaml:"gitlab_url"`
+	GitlabExcludeNamespaces []string `yaml:"gitlab_exclude_namespaces"`
+	GitlabExcludeProjects   []string `yaml:"gitlab_exclude_projects"`
+	GitlabFilter            string   `yaml:"gitlab_filter"`
 }
 
 type Common struct {
