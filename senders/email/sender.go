@@ -24,13 +24,14 @@ const (
 
 // Config - SMTP settings
 type Config struct {
-	From        string
-	SMTPHost    string
-	SMTPPort    int
-	InsecureTLS bool
-	Username    string
-	Password    string
-	Delay       time.Duration
+	From         string
+	SMTPHost     string
+	SMTPPort     int
+	InsecureTLS  bool
+	Username     string
+	Password     string
+	Delay        time.Duration
+	SendToAuthor bool
 }
 
 // Sender - send email

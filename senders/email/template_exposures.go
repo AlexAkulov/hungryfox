@@ -121,7 +121,7 @@ const exposuresTemplate = `
             <td bgcolor="#ffffff" align="left" style="padding: 30px 30px 0px 30px; font-size: 16px;">
               <p>Обнаружена зависимость, имеющая известную уязвимость</p>
               <p>Если это ошибка, ответь на это письмо чтобы мы добавили это в исключения.</p>
-              <p> Найдено {{ .ExposuresCount }} уязвимых зависимостей в {{ .FilesCount }} файлах.</p>
+              <p> Найдено уязвимых зависимостей: {{ .ExposuresCount }}</p>
             </td>
           </tr>
       </td>

@@ -6,8 +6,6 @@ import (
 	"path/filepath"
 	"regexp"
 
-	"github.com/AlexAkulov/hungryfox/deps"
-
 	. "github.com/AlexAkulov/hungryfox"
 	"github.com/AlexAkulov/hungryfox/config"
 	"github.com/AlexAkulov/hungryfox/helpers"
@@ -121,12 +119,12 @@ func (d *AnalyzerDispatcher) makeDepsWorker(diffChannel <-chan *Diff, depsChanne
 }
 
 func (d *AnalyzerDispatcher) makeVulnsWorker(depsChannel <-chan *Dependency, vulnsChannel chan<- *VulnerableDependency) *VulnerabilitiesWorker {
-	ossCreds := deps.Credentials{
+	ossCreds := Credentials{
 		User:     d.config.Exposures.OssIndexUser,
 		Password: d.config.Exposures.OssIndexPassword,
 	}
 	return &VulnerabilitiesWorker{
-		Searcher:    deps.NewSearcher(vulnsChannel, d.Log, ossCreds),
+		Searcher:    NewVulnsSearcher(vulnsChannel, d.Log, ossCreds),
 		DepsChannel: depsChannel,
 		Log:         d.Log,
 		Dying:       d.tomb.Dying(),

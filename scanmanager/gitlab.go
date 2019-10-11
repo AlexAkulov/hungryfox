@@ -21,8 +21,9 @@ func (sm *ScanManager) inspectGitlab(inspect config.Inspect) error {
 		ExcludeNamespaces: inspect.GitlabExcludeNamespaces,
 		ExcludeProjects:   inspect.GitlabExcludeProjects,
 		Search:            inspect.GitlabFilter,
+		IncludeNonGroup:   inspect.GiltabIncludeNonGroup,
 	}
-	locations, err := gitlabClient.FetchGroupRepos(fetchOpts)
+	locations, err := gitlabClient.FetchRepos(fetchOpts)
 	if err != nil {
 		sm.Log.Error().Msg(err.Error())
 		return err

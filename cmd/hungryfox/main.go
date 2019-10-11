@@ -109,9 +109,6 @@ func main() {
 	if conf.Common.Workers > 0 {
 		numCPUs = conf.Common.Workers
 	}
-	if numCPUs > 1 {
-		numCPUs = numCPUs / 2 //TODO
-	}
 	analyzerDispatcher := &searcher.AnalyzerDispatcher{
 		Workers:                numCPUs,
 		DiffChannel:            diffChannel,

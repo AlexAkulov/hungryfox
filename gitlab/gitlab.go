@@ -17,10 +17,11 @@ type Client struct {
 type FetchOptions struct {
 	ExcludeNamespaces []string
 	ExcludeProjects   []string
+	IncludeNonGroup   bool
 	Search            string
 }
 
-func (c *Client) FetchGroupRepos(options *FetchOptions) ([]hungryfox.RepoLocation, error) {
+func (c *Client) FetchRepos(options *FetchOptions) ([]hungryfox.RepoLocation, error) {
 	c.connect()
 	isSimple := true
 	search := options.Search
@@ -43,7 +44,7 @@ func (c *Client) FetchGroupRepos(options *FetchOptions) ([]hungryfox.RepoLocatio
 		}
 
 		for _, proj := range projects {
-			isGroup := proj.Namespace.Kind == "group"
+			isGroup := !options.IncludeNonGroup && proj.Namespace.Kind == "group"
 			isExcludedNs := excludedProjects[proj.PathWithNamespace]
 			isExcludedProj := excludedNamespaces[proj.Namespace.Name]
 			if isGroup && !isExcludedNs && !isExcludedProj {

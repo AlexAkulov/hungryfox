@@ -1,4 +1,4 @@
-package deps
+package searcher
 
 import (
 	ossindex "github.com/A1bemuth/go-oss-index"
@@ -19,7 +19,7 @@ type VulnerabilitySearcher struct {
 	ossIndexClient ossindex.Client
 }
 
-func NewSearcher(vulnsChan chan<- *hungryfox.VulnerableDependency, log zerolog.Logger, ossCredentials Credentials) *VulnerabilitySearcher {
+func NewVulnsSearcher(vulnsChan chan<- *hungryfox.VulnerableDependency, log zerolog.Logger, ossCredentials Credentials) *VulnerabilitySearcher {
 	return &VulnerabilitySearcher{
 		VulnerabilitiesChannel: vulnsChan,
 		Log:                    log,
@@ -48,7 +48,7 @@ func (s *VulnerabilitySearcher) Search(deps []hungryfox.Dependency) error {
 			s.Log.Warn().Str("coordinates", report.Coordinates).Msg("found an oss report but no matching dependency")
 			continue
 		}
-		s.Log.Debug().Str("file", dep.FilePath).Int("count", found).Msg("vulnerabilities found")
+		s.Log.Debug().Str("repo", dep.RepoURL).Str("file", dep.FilePath).Int("count", found).Msg("vulnerabilities found")
 		s.VulnerabilitiesChannel <- toVulnerableDep(dep, vulns)
 	}
 

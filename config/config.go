@@ -19,7 +19,7 @@ type SMTP struct {
 	Username     string `yaml:"username"`
 	Password     string `yaml:"password"`
 	Recipient    string `yaml:"recipient"`
-	SentToAuthor bool   `yaml:"sent_to_autor"`
+	SentToAuthor bool   `yaml:"sent_to_author"`
 	Delay        string `yaml:"delay"`
 }
 
@@ -33,20 +33,22 @@ type Config struct {
 }
 
 type Inspect struct {
-	Type                    string   `yaml:"type"`
-	Paths                   []string `yaml:"paths"`
-	URL                     string   `yaml:"url"`
-	Token                   string   `yaml:"token"`
-	TrimPrefix              string   `yaml:"trim_prefix"`
-	TrimSuffix              string   `yaml:"trim_suffix"`
-	WorkDir                 string   `yaml:"work_dir"`
-	Users                   []string `yaml:"users"`
-	Repos                   []string `yaml:"repos"`
-	Orgs                    []string `yaml:"orgs"`
+	Type       string   `yaml:"type"`
+	Paths      []string `yaml:"paths"`
+	URL        string   `yaml:"url"`
+	Token      string   `yaml:"token"`
+	TrimPrefix string   `yaml:"trim_prefix"`
+	TrimSuffix string   `yaml:"trim_suffix"`
+	WorkDir    string   `yaml:"work_dir"`
+	Users      []string `yaml:"users"`
+	Repos      []string `yaml:"repos"`
+	Orgs       []string `yaml:"orgs"`
+
 	GitlabURL               string   `yaml:"gitlab_url"`
 	GitlabExcludeNamespaces []string `yaml:"gitlab_exclude_namespaces"`
 	GitlabExcludeProjects   []string `yaml:"gitlab_exclude_projects"`
 	GitlabFilter            string   `yaml:"gitlab_filter"`
+	GiltabIncludeNonGroup   bool     `yaml:"gitlab_include_non_group"`
 }
 
 type Common struct {
