@@ -41,6 +41,18 @@ func TestParseDuration(t *testing.T) {
 	})
 }
 
+func TestToStringArray(t *testing.T) {
+	Convey("convertes", t, func() {
+		mp := make(map[string]struct{})
+		mp["one"] = struct{}{}
+		mp["two"] = struct{}{}
+
+		arr := ToStringArray(mp)
+
+		So(arr, ShouldResemble, []string{"one", "two"})
+	})
+}
+
 func TestChannelDuplication(t *testing.T) {
 	Convey("duplicates", t, func() {
 		ch := make(chan *hungryfox.Diff)

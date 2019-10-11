@@ -44,7 +44,7 @@ func (c *Client) FetchRepos(options *FetchOptions) ([]hungryfox.RepoLocation, er
 		}
 
 		for _, proj := range projects {
-			isGroup := !options.IncludeNonGroup && proj.Namespace.Kind == "group"
+			isGroup := options.IncludeNonGroup || proj.Namespace.Kind == "group"
 			isExcludedNs := excludedProjects[proj.PathWithNamespace]
 			isExcludedProj := excludedNamespaces[proj.Namespace.Name]
 			if isGroup && !isExcludedNs && !isExcludedProj {

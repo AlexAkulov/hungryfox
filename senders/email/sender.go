@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"io"
 	"net/smtp"
+	"regexp"
 	"strings"
 	"time"
 
@@ -24,14 +25,15 @@ const (
 
 // Config - SMTP settings
 type Config struct {
-	From         string
-	SMTPHost     string
-	SMTPPort     int
-	InsecureTLS  bool
-	Username     string
-	Password     string
-	Delay        time.Duration
-	SendToAuthor bool
+	From           string
+	SMTPHost       string
+	SMTPPort       int
+	InsecureTLS    bool
+	Username       string
+	Password       string
+	Delay          time.Duration
+	SendToAuthor   bool
+	RecipientRegex string
 }
 
 // Sender - send email
@@ -40,8 +42,10 @@ type Sender struct {
 	AuditorEmail string
 	Config       *Config
 	Log          zerolog.Logger
-	template     *template.Template
-	muster       *muster.Client
+
+	recipientRegex *regexp.Regexp
+	template       *template.Template
+	muster         *muster.Client
 }
 
 func (s *Sender) Accepts(item interface{}) bool {
@@ -130,6 +134,21 @@ func (s *Sender) sendMessage(recipient string, subject string, messageData inter
 		return s.template.Execute(w, messageData)
 	})
 	return d.DialAndSend(m)
+}
+
+func (s *Sender) isOkRecipient(recipient string) bool {
+	if s.recipientRegex == nil {
+		if s.Config.RecipientRegex == "" {
+			return true
+		}
+		var err error
+		s.recipientRegex, err = regexp.Compile(s.Config.RecipientRegex)
+		if err != nil {
+			s.Log.Warn().Err(err).Msg("Invalid regex in recipient_filter configuration")
+			return true
+		}
+	}
+	return s.recipientRegex.MatchString(recipient)
 }
 
 func (s *Sender) getTemplate() (*template.Template, error) {

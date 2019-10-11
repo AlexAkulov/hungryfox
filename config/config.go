@@ -11,16 +11,17 @@ import (
 )
 
 type SMTP struct {
-	Enable       bool   `yaml:"enable"`
-	From         string `yaml:"mail_from"`
-	Host         string `yaml:"host"`
-	Port         int    `yaml:"port"`
-	TLS          bool   `yaml:"tls"`
-	Username     string `yaml:"username"`
-	Password     string `yaml:"password"`
-	Recipient    string `yaml:"recipient"`
-	SentToAuthor bool   `yaml:"sent_to_author"`
-	Delay        string `yaml:"delay"`
+	Enable         bool   `yaml:"enable"`
+	From           string `yaml:"mail_from"`
+	Host           string `yaml:"host"`
+	Port           int    `yaml:"port"`
+	TLS            bool   `yaml:"tls"`
+	Username       string `yaml:"username"`
+	Password       string `yaml:"password"`
+	Recipient      string `yaml:"recipient"`
+	Delay          string `yaml:"delay"`
+	SentToAuthor   bool   `yaml:"sent_to_author"`
+	RecipientRegex string `yaml:"recipient_regex"`
 }
 
 type Config struct {

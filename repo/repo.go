@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/AlexAkulov/hungryfox"
+	"github.com/AlexAkulov/hungryfox/helpers"
 	"github.com/rs/zerolog"
 
 	"gopkg.in/src-d/go-git.v4"
@@ -55,15 +56,15 @@ func (r *Repo) SetRefs(refs []string) {
 	}
 }
 
-func (r *Repo) GetRefs() (refsMap []string) {
-	refsMap = []string{}
+func (r *Repo) GetRefs() []string {
+	refsMap := make(map[string]struct{})
 	if err := r.open(); err != nil {
-		return
+		return make([]string, 0)
 	}
 
 	refs, err := r.repository.References()
 	if err != nil {
-		return
+		return make([]string, 0)
 	}
 	refs.ForEach(func(ref *plumbing.Reference) error {
 		if ref.Hash().IsZero() {
@@ -72,14 +73,14 @@ func (r *Repo) GetRefs() (refsMap []string) {
 		if strings.HasPrefix(ref.Name().String(), "refs/keep-around/") {
 			return nil
 		}
-		refsMap = append(refsMap, ref.Hash().String())
+		refsMap[ref.Hash().String()] = struct{}{}
 		return nil
 	})
 	lastCommit := r.getLastCommit()
 	if lastCommit != "" {
-		refsMap = append(refsMap, lastCommit)
+		refsMap[lastCommit] = struct{}{}
 	}
-	return
+	return helpers.ToStringArray(refsMap)
 }
 
 func (r *Repo) isChecked(commitHash string) bool {

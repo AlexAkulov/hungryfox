@@ -61,3 +61,13 @@ func Duplicate(channel <-chan *hungryfox.Diff, buffLen int) (<-chan *hungryfox.D
 	}()
 	return ch1, ch2
 }
+
+func ToStringArray(mp map[string]struct{}) []string {
+	arr := make([]string, len(mp))
+	i := 0
+	for key, _ := range mp {
+		arr[i] = key
+		i++
+	}
+	return arr
+}

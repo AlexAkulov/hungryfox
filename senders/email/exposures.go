@@ -70,7 +70,11 @@ func (b *exposuresBatch) Fire(notifier muster.Notifier) {
 	b.Sender.sendExposuresMail(b.Sender.AuditorEmail, allRepos)
 	if len(reposByAuthor) > 0 {
 		for authorsEmail, repos := range reposByAuthor {
-			b.Sender.sendExposuresMail(authorsEmail, repos)
+			if b.Sender.isOkRecipient(authorsEmail) {
+				b.Sender.sendExposuresMail(authorsEmail, repos)
+			} else {
+				b.Sender.Log.Warn().Str("email", authorsEmail).Msg("recipient doesn't match specified pattern and won't receive a notification")
+			}
 		}
 	}
 }
