@@ -43,7 +43,10 @@ func (c *Client) FetchGroupRepos(options *FetchOptions) ([]hungryfox.RepoLocatio
 		}
 
 		for _, proj := range projects {
-			if !excludedNamespaces[proj.Namespace.Name] && !excludedProjects[proj.PathWithNamespace] {
+			isGroup := proj.Namespace.Kind == "group"
+			isExcludedNs := excludedProjects[proj.PathWithNamespace]
+			isExcludedProj := excludedNamespaces[proj.Namespace.Name]
+			if isGroup && !isExcludedNs && !isExcludedProj {
 				locations = append(locations, *c.toRepoLocation(proj))
 			}
 		}

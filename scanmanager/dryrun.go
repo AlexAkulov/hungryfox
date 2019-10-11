@@ -11,7 +11,6 @@ func (sm *ScanManager) DryRun() {
 		r := sm.repoList.GetRepoByIndex(i)
 		if r == nil {
 			panic("bad index")
-			return
 		}
 		if err := sm.getState(r); err != nil {
 			sm.Log.Error().Str("error", err.Error()).
