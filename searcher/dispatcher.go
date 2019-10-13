@@ -45,6 +45,7 @@ type AnalyzerDispatcher struct {
 	config           *config.Config
 	stats            map[string]RepoStats
 	leakMatchers     *Matchers
+	suppressions     *[]suppression
 	tomb             tomb.Tomb
 }
 
@@ -140,6 +141,7 @@ func (d *AnalyzerDispatcher) updateConfig(conf *config.Config) error {
 	if err != nil {
 		return err
 	}
+	newSuppressions := []suppression{}
 
 	if conf.Common.PatternsPath != "" {
 		newFilePatterns, err := loadPatternsFromPath(conf.Common.PatternsPath)
@@ -156,9 +158,19 @@ func (d *AnalyzerDispatcher) updateConfig(conf *config.Config) error {
 		}
 		newCompiledFiltres = append(newCompiledFiltres, newFileFilters...)
 	}
+
+	if conf.Common.SuppressionsPath != "" {
+		newSuppressions, err = loadSuppressionsFromPath(conf.Common.SuppressionsPath)
+		if err != nil {
+			return err
+		}
+	}
+
 	matchers := Matchers{patterns: newCompiledPatterns, filters: newCompiledFiltres}
 	d.leakMatchers = &matchers
 	d.Log.Info().Int("patterns", len(newCompiledPatterns)).Int("filters", len(newCompiledFiltres)).Msg("loaded")
+	d.suppressions = &newSuppressions
+	d.Log.Info().Int("suppressions", len(newSuppressions)).Msg("loaded")
 	d.config = conf
 	return nil
 }
@@ -195,25 +207,14 @@ func loadPatternsFromFile(file string) ([]patternType, error) {
 	return result, nil
 }
 
-func compilePatterns(configPatterns []config.Pattern) ([]patternType, error) {
-	result := make([]patternType, 0)
+func compilePatterns(configPatterns []config.Pattern) (result []patternType, err error) {
+	defer helpers.RecoverTo(&err)
+
 	for _, configPattern := range configPatterns {
 		p := patternType{
 			Name:      configPattern.Name,
-			FileRe:    matchAllRegex,
-			ContentRe: matchAllRegex,
-		}
-		if configPattern.File != "*" && configPattern.File != "" {
-			var err error
-			if p.FileRe, err = regexp.Compile(configPattern.File); err != nil {
-				return nil, fmt.Errorf("can't compile pattern file regexp '%s' with: %v", configPattern.File, err)
-			}
-		}
-		if configPattern.Content != "*" && configPattern.Content != "" {
-			var err error
-			if p.ContentRe, err = regexp.Compile(configPattern.Content); err != nil {
-				return nil, fmt.Errorf("can't compile pattern content regexp '%s' with: %v", configPattern.Content, err)
-			}
+			FileRe:    compileRegex(configPattern.File),
+			ContentRe: compileRegex(configPattern.Content),
 		}
 		result = append(result, p)
 	}

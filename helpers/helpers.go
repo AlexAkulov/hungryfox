@@ -1,6 +1,7 @@
 package helpers
 
 import (
+	"errors"
 	"regexp"
 	"strconv"
 	"strings"
@@ -70,4 +71,18 @@ func ToStringArray(mp map[string]struct{}) []string {
 		i++
 	}
 	return arr
+}
+
+func RecoverTo(err *error) {
+	e := recover()
+	if e != nil {
+		switch typedErr := e.(type) {
+		case error:
+			*err = typedErr
+		case string:
+			*err = errors.New(typedErr)
+		default:
+			panic(e)
+		}
+	}
 }

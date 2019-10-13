@@ -17,6 +17,7 @@ type VulnerabilitySearcher struct {
 	Log                    zerolog.Logger
 
 	ossIndexClient ossindex.Client
+	suppressions   *[]suppression
 }
 
 func NewVulnsSearcher(vulnsChan chan<- *hungryfox.VulnerableDependency, log zerolog.Logger, ossCredentials Credentials) *VulnerabilitySearcher {
@@ -38,16 +39,19 @@ func (s *VulnerabilitySearcher) Search(deps []hungryfox.Dependency) error {
 		return err
 	}
 	for _, report := range reports {
-		vulns := getVulnerabilities(&report)
-		found := len(vulns)
-		if found == 0 {
-			continue
-		}
 		dep, ok := depsMap[report.Coordinates]
 		if !ok {
 			s.Log.Warn().Str("coordinates", report.Coordinates).Msg("found an oss report but no matching dependency")
 			continue
 		}
+
+		vulns := getVulnerabilities(&report)
+		vulns = filterSuppressed(dep, vulns, *s.suppressions)
+		found := len(vulns)
+		if found == 0 {
+			continue
+		}
+
 		s.Log.Debug().Str("repo", dep.RepoURL).Str("file", dep.FilePath).Int("count", found).Msg("vulnerabilities found")
 		s.VulnerabilitiesChannel <- toVulnerableDep(dep, vulns)
 	}

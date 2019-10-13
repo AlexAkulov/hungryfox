@@ -1,6 +1,7 @@
 package helpers
 
 import (
+	"errors"
 	"testing"
 	"time"
 
@@ -50,6 +51,22 @@ func TestToStringArray(t *testing.T) {
 		arr := ToStringArray(mp)
 
 		So(arr, ShouldResemble, []string{"one", "two"})
+	})
+}
+
+func TestRecoverTo(t *testing.T) {
+	panickyFunc := func() (e error) {
+		defer RecoverTo(&e)
+		panic(errors.New("much panic"))
+	}
+
+	Convey("recovers", t, func() {
+		So(func() { panickyFunc() }, ShouldNotPanic)
+	})
+	Convey("getsError", t, func() {
+		err := panickyFunc()
+
+		So(err, ShouldBeError, "much panic")
 	})
 }
 
