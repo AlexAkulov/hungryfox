@@ -20,7 +20,7 @@ type VulnerabilitySearcher struct {
 	suppressions   *[]suppression
 }
 
-func NewVulnsSearcher(vulnsChan chan<- *hungryfox.VulnerableDependency, log zerolog.Logger, ossCredentials Credentials) *VulnerabilitySearcher {
+func NewVulnsSearcher(vulnsChan chan<- *hungryfox.VulnerableDependency, log zerolog.Logger, ossCredentials Credentials, suppressions *[]suppression) *VulnerabilitySearcher {
 	return &VulnerabilitySearcher{
 		VulnerabilitiesChannel: vulnsChan,
 		Log:                    log,
@@ -28,6 +28,7 @@ func NewVulnsSearcher(vulnsChan chan<- *hungryfox.VulnerableDependency, log zero
 			User:     ossCredentials.User,
 			Password: ossCredentials.Password,
 		},
+		suppressions: suppressions,
 	}
 }
 
@@ -46,14 +47,21 @@ func (s *VulnerabilitySearcher) Search(deps []hungryfox.Dependency) error {
 		}
 
 		vulns := getVulnerabilities(&report)
-		vulns = filterSuppressed(dep, vulns, *s.suppressions)
 		found := len(vulns)
-		if found == 0 {
-			continue
+		if len(vulns) == 0 {
+			return nil
 		}
-
 		s.Log.Debug().Str("repo", dep.RepoURL).Str("file", dep.FilePath).Int("count", found).Msg("vulnerabilities found")
-		s.VulnerabilitiesChannel <- toVulnerableDep(dep, vulns)
+
+		if s.suppressions != nil {
+			vulns = filterSuppressed(dep, vulns, *s.suppressions)
+			if len(vulns) < found {
+				s.Log.Debug().Str("repo", dep.RepoURL).Str("file", dep.FilePath).Int("count", found).Msg("vulnerabilities suppressed")
+			}
+		}
+		if len(vulns) > 0 {
+			s.VulnerabilitiesChannel <- toVulnerableDep(dep, vulns)
+		}
 	}
 
 	return nil

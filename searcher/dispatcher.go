@@ -125,7 +125,7 @@ func (d *AnalyzerDispatcher) makeVulnsWorker(depsChannel <-chan *Dependency, vul
 		Password: d.config.Exposures.OssIndexPassword,
 	}
 	return &VulnerabilitiesWorker{
-		Searcher:    NewVulnsSearcher(vulnsChannel, d.Log, ossCreds),
+		Searcher:    NewVulnsSearcher(vulnsChannel, d.Log, ossCreds, d.suppressions),
 		DepsChannel: depsChannel,
 		Log:         d.Log,
 		Dying:       d.tomb.Dying(),

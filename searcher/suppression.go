@@ -29,7 +29,7 @@ type suppressionDto struct {
 
 	DependencyName string `yaml:"dep_name"`
 	Version        string `yaml:"dep_version"`
-	FilePath       string `yaml:"filepath"`
+	FilePath       string `yaml:"file_path"`
 
 	Source string `yaml:"source"`
 	Id     string `yaml:"id"`
@@ -38,26 +38,26 @@ type suppressionDto struct {
 }
 
 func filterSuppressed(dep *Dependency, vulns []Vulnerability, suppressions []suppression) []Vulnerability {
-	result := make([]Vulnerability, len(vulns))
-	copy(result, vulns)
 	for _, s := range suppressions {
-		s.filter(dep, &result)
+		vulns = s.filter(dep, vulns)
 	}
-	return result
+	return vulns
 }
 
-func (s *suppression) filter(dep *Dependency, vulns *[]Vulnerability) {
+func (s *suppression) filter(dep *Dependency, vulns []Vulnerability) []Vulnerability {
 	if !s.Repository.MatchString(dep.Diff.RepoURL) ||
 		!s.DependencyName.MatchString(dep.Purl.Name) ||
 		!s.Version.MatchString(dep.Purl.Version) ||
 		!s.FilePath.MatchString(dep.Diff.FilePath) {
-		return
+		return vulns
 	}
-	for i, v := range *vulns {
-		if s.shouldSuppress(&v) {
-			*vulns = append((*vulns)[:i], (*vulns)[i+1:]...)
+	filtered := make([]Vulnerability, 0, len(vulns))
+	for _, v := range vulns {
+		if !s.shouldSuppress(&v) {
+			filtered = append(filtered, v)
 		}
 	}
+	return filtered
 }
 
 func (s *suppression) shouldSuppress(v *Vulnerability) bool {
@@ -95,7 +95,7 @@ func loadSuppressionsFromFile(file string) (s []suppression, err error) {
 		return nil, fmt.Errorf("can't parse file '%s' with: %v", file, err)
 	}
 
-	return nil, nil
+	return compileSuppressions(rawSuppressions), nil
 }
 
 func compileSuppressions(rawSuppressions []suppressionDto) []suppression {
