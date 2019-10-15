@@ -46,22 +46,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	var lvl zerolog.Level
-	switch conf.Common.LogLevel {
-	case "debug":
-		lvl = zerolog.DebugLevel
-	case "info":
-		lvl = zerolog.InfoLevel
-	case "warn":
-		lvl = zerolog.WarnLevel
-	case "error":
-		lvl = zerolog.ErrorLevel
-	default:
-		fmt.Fprintf(os.Stderr, "Unknown log_level '%s'", conf.Common.LogLevel)
-		os.Exit(1)
-	}
-	logger := zerolog.New(os.Stdout).Level(lvl).With().Timestamp().Logger().Output(zerolog.ConsoleWriter{Out: os.Stdout})
-
+	logger := createLogger(conf.Logging)
 	metricsRepo := metrics.StartMetricsRepo(conf.Metrics, logger)
 
 	diffChannel := make(chan *hungryfox.Diff, 100)
@@ -218,4 +203,31 @@ func main() {
 	}
 
 	logger.Info().Str("version", version).Msg("stopped")
+}
+
+func createLogger(conf *config.Logging) zerolog.Logger {
+	var lvl zerolog.Level
+	switch conf.Level {
+	case "debug":
+		lvl = zerolog.DebugLevel
+	case "info":
+		lvl = zerolog.InfoLevel
+	case "warn":
+		lvl = zerolog.WarnLevel
+	case "error":
+		lvl = zerolog.ErrorLevel
+	default:
+		fmt.Fprintf(os.Stderr, "Unknown logging level '%s'", conf.Level)
+		os.Exit(1)
+	}
+	if conf.File != "" {
+		writer, err := os.OpenFile(conf.File, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0666)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Cannot open log file '%s'", conf.File)
+			os.Exit(1)
+		}
+		return zerolog.New(writer).Level(lvl).With().Timestamp().Logger()
+	} else {
+		return zerolog.New(os.Stdout).Level(lvl).With().Timestamp().Logger().Output(zerolog.ConsoleWriter{Out: os.Stdout})
+	}
 }

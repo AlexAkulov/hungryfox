@@ -12,6 +12,7 @@ import (
 
 type Config struct {
 	Common    *Common    `yaml:"common"`
+	Logging   *Logging   `yaml:"logging"`
 	Inspect   []Inspect  `yaml:"inspect"`
 	Patterns  []Pattern  `yaml:"patterns"`
 	Filters   []Pattern  `yaml:"filters"`
@@ -56,7 +57,6 @@ type Inspect struct {
 type Common struct {
 	StateFile              string `yaml:"state_file"`
 	HistoryPastLimitString string `yaml:"history_limit"`
-	LogLevel               string `yaml:"log_level"`
 	LeaksFile              string `yaml:"leaks_file"`
 	VulnerabilitiesFile    string `yaml:"vulnerabilities_file"`
 	ScanIntervalString     string `yaml:"scan_interval"`
@@ -66,6 +66,11 @@ type Common struct {
 	Workers                int    `yaml:"workers"`
 	HistoryPastLimit       time.Time
 	ScanInterval           time.Duration
+}
+
+type Logging struct {
+	Level string `yaml:"level"`
+	File  string `yaml:"file"`
 }
 
 type Pattern struct {
