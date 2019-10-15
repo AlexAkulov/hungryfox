@@ -11,6 +11,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/AlexAkulov/hungryfox/metrics"
+
 	"github.com/AlexAkulov/hungryfox"
 	"github.com/AlexAkulov/hungryfox/config"
 	"github.com/AlexAkulov/hungryfox/helpers"
@@ -58,8 +60,9 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Unknown log_level '%s'", conf.Common.LogLevel)
 		os.Exit(1)
 	}
-	// logger := zerolog.New(os.Stdout).Level(lvl).With().Timestamp().Logger()
 	logger := zerolog.New(os.Stdout).Level(lvl).With().Timestamp().Logger().Output(zerolog.ConsoleWriter{Out: os.Stdout})
+
+	metricsRepo := metrics.StartMetricsRepo(conf.Metrics, logger)
 
 	diffChannel := make(chan *hungryfox.Diff, 100)
 	leakChannel := make(chan *hungryfox.Leak, 1)
@@ -101,7 +104,6 @@ func main() {
 	logger.Debug().Str("service", "leaks router").Msg("started")
 
 	logger.Debug().Str("service", "analyzer dispatcher").Msg("start")
-
 	numCPUs := runtime.NumCPU() - 1
 	if numCPUs < 1 {
 		numCPUs = 1
@@ -115,6 +117,10 @@ func main() {
 		LeakChannel:            leakChannel,
 		VulnerabilitiesChannel: vulnsChannel,
 		Log:                    logger,
+		Metrics: searcher.Metrics{
+			Leaks:           metricsRepo.CreateCounter("leaks.found"),
+			Vulnerabilities: metricsRepo.CreateCounter("vulnerabilities.found"),
+		},
 	}
 	if err := analyzerDispatcher.Start(conf); err != nil {
 		logger.Error().Str("service", "leaks searcher").Str("error", err.Error()).Msg("fail")
@@ -204,6 +210,11 @@ func main() {
 	logger.Debug().Str("service", "state manager").Msg("stop")
 	if err := stateManager.Stop(); err != nil {
 		logger.Error().Str("error", err.Error()).Str("service", "state manager").Msg("can't stop")
+	}
+
+	logger.Debug().Str("service", "metrics repository").Msg("stop")
+	if err := metricsRepo.Stop(); err != nil {
+		logger.Error().Str("error", err.Error()).Str("service", "metrics repository").Msg("can't stop")
 	}
 
 	logger.Info().Str("version", version).Msg("stopped")

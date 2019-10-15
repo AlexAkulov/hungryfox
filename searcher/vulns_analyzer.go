@@ -14,6 +14,7 @@ type Credentials struct {
 
 type VulnerabilitySearcher struct {
 	VulnerabilitiesChannel chan<- *hungryfox.VulnerableDependency
+	StatsChannel           chan<- statsDiff
 	Log                    zerolog.Logger
 
 	ossIndexClient ossindex.Client
@@ -47,7 +48,7 @@ func (s *VulnerabilitySearcher) Search(deps []hungryfox.Dependency) error {
 		}
 
 		vulns := getVulnerabilities(&report)
-		found := len(vulns)
+		found, suppressed := len(vulns), 0
 		if len(vulns) == 0 {
 			return nil
 		}
@@ -55,12 +56,22 @@ func (s *VulnerabilitySearcher) Search(deps []hungryfox.Dependency) error {
 
 		if s.suppressions != nil {
 			vulns = filterSuppressed(dep, vulns, *s.suppressions)
-			if len(vulns) < found {
-				s.Log.Debug().Str("repo", dep.RepoURL).Str("file", dep.FilePath).Int("count", found).Msg("vulnerabilities suppressed")
+			suppressed = found - len(vulns)
+			if suppressed > 0 {
+				s.Log.Debug().Str("repo", dep.RepoURL).Str("file", dep.FilePath).Int("count", suppressed).Msg("vulnerabilities suppressed")
 			}
+			found = len(vulns)
 		}
-		if len(vulns) > 0 {
+		if found > 0 {
 			s.VulnerabilitiesChannel <- toVulnerableDep(dep, vulns)
+		}
+		if found > 0 || suppressed > 0 {
+			s.StatsChannel <- statsDiff{
+				Kind:     VulnerabilityStat,
+				RepoURL:  dep.Diff.RepoURL,
+				Found:    found,
+				Filtered: suppressed,
+			}
 		}
 	}
 

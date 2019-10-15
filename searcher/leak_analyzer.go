@@ -33,6 +33,7 @@ func (a *LeakAnalyzer) Analyze(diff *hungryfox.Diff) {
 	leaksCount := len(leaks) - filteredLeaks
 	if leaksCount > 0 || filteredLeaks > 0 {
 		a.StatsChannel <- statsDiff{
+			Kind:     LeakStat,
 			RepoURL:  diff.RepoURL,
 			Found:    leaksCount,
 			Filtered: filteredLeaks,

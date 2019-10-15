@@ -9,6 +9,7 @@ import (
 	. "github.com/AlexAkulov/hungryfox"
 	"github.com/AlexAkulov/hungryfox/config"
 	"github.com/AlexAkulov/hungryfox/helpers"
+	"github.com/go-kit/kit/metrics"
 	"github.com/rs/zerolog"
 	"gopkg.in/tomb.v2"
 	"gopkg.in/yaml.v2"
@@ -22,15 +23,9 @@ type patternType struct {
 	FileRe    *regexp.Regexp
 }
 
-type RepoStats struct {
-	LeaksFound   int `json:"leaks_found"`
-	LeaksFiltred int `json:"leaks_filtred"`
-}
-
-type statsDiff struct {
-	RepoURL  string
-	Found    int
-	Filtered int
+type Metrics struct {
+	Leaks           metrics.Counter
+	Vulnerabilities metrics.Counter
 }
 
 type AnalyzerDispatcher struct {
@@ -39,6 +34,7 @@ type AnalyzerDispatcher struct {
 	LeakChannel            chan<- *Leak
 	VulnerabilitiesChannel chan<- *VulnerableDependency
 	Log                    zerolog.Logger
+	Metrics                Metrics
 
 	updateConfigChan chan<- *config.Config
 	updateStatsChan  chan statsDiff
@@ -65,7 +61,7 @@ func (d *AnalyzerDispatcher) Start(conf *config.Config) error {
 
 	d.stats = map[string]RepoStats{}
 	d.updateStatsChan = make(chan statsDiff)
-	d.tomb.Go(d.updateStatsWorker)
+	d.tomb.Go(d.statsUpdaterWorker)
 
 	leaksDiffChannel, depsDiffChannel := helpers.Duplicate(d.DiffChannel, 200)
 	depsChannel := make(chan *Dependency)
@@ -219,22 +215,4 @@ func compilePatterns(configPatterns []config.Pattern) (result []patternType, err
 		result = append(result, p)
 	}
 	return result, nil
-}
-
-func (d *AnalyzerDispatcher) updateStatsWorker() (err error) {
-	defer func() {
-		e := recover()
-		if e != nil {
-			err = err.(error)
-		}
-	}()
-	for {
-		diff := <-d.updateStatsChan
-		{
-			stats := d.stats[diff.RepoURL]
-			stats.LeaksFiltred += diff.Filtered
-			stats.LeaksFound += diff.Found
-			d.stats[diff.RepoURL] = stats
-		}
-	}
 }

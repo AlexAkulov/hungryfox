@@ -10,6 +10,16 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+type Config struct {
+	Common    *Common    `yaml:"common"`
+	Inspect   []Inspect  `yaml:"inspect"`
+	Patterns  []Pattern  `yaml:"patterns"`
+	Filters   []Pattern  `yaml:"filters"`
+	SMTP      *SMTP      `yaml:"smtp"`
+	Exposures *Exposures `yaml:"exposures"`
+	Metrics   *Metrics   `yaml:"metrics"`
+}
+
 type SMTP struct {
 	Enable         bool   `yaml:"enable"`
 	From           string `yaml:"mail_from"`
@@ -22,15 +32,6 @@ type SMTP struct {
 	Delay          string `yaml:"delay"`
 	SentToAuthor   bool   `yaml:"sent_to_author"`
 	RecipientRegex string `yaml:"recipient_regex"`
-}
-
-type Config struct {
-	Common    *Common    `yaml:"common"`
-	Inspect   []Inspect  `yaml:"inspect"`
-	Patterns  []Pattern  `yaml:"patterns"`
-	Filters   []Pattern  `yaml:"filters"`
-	SMTP      *SMTP      `yaml:"smtp"`
-	Exposures *Exposures `yaml:"exposures"`
 }
 
 type Inspect struct {
@@ -78,12 +79,23 @@ type Exposures struct {
 	OssIndexPassword string `yaml:"oss_index_password"`
 }
 
+type Metrics struct {
+	GraphiteAddress    string `yaml:"graphite_address"`
+	Prefix             string `yaml:"prefix"`
+	SendIntervalString string `yaml:"send_interval"`
+	EnableLogging      string `yaml:"enable_logging"`
+	SendInterval       time.Duration
+}
+
 func defaultConfig() *Config {
 	return &Config{
 		SMTP: &SMTP{
 			Delay: "5m",
 		},
 		Exposures: &Exposures{},
+		Metrics: &Metrics{
+			SendInterval: 10 * time.Second,
+		},
 	}
 }
 
@@ -108,6 +120,15 @@ func LoadConfig(configLocation string) (*Config, error) {
 	}
 	if config.Common.ScanInterval < time.Second {
 		return nil, fmt.Errorf("scan_interval so small")
+	}
+	if config.Metrics.SendIntervalString != "" {
+		config.Metrics.SendInterval, err = helpers.ParseDuration(config.Metrics.SendIntervalString)
+		if err != nil {
+			return nil, err
+		}
+		if config.Metrics.SendInterval < time.Second {
+			return nil, fmt.Errorf("metrics.send_interval too small")
+		}
 	}
 	return config, nil
 }

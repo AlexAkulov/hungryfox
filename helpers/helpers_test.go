@@ -43,14 +43,16 @@ func TestParseDuration(t *testing.T) {
 }
 
 func TestToStringArray(t *testing.T) {
-	Convey("convertes", t, func() {
+	Convey("converts", t, func() {
 		mp := make(map[string]struct{})
 		mp["one"] = struct{}{}
 		mp["two"] = struct{}{}
 
 		arr := ToStringArray(mp)
 
-		So(arr, ShouldResemble, []string{"one", "two"})
+		So(arr, ShouldHaveLength, 2)
+		So(arr, ShouldContain, "one")
+		So(arr, ShouldContain, "two")
 	})
 }
 

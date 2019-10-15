@@ -132,16 +132,6 @@ func TestLoadSuppressions(t *testing.T) {
 	})
 }
 
-func TestStuff(t *testing.T) {
-	Convey("st", t, func() {
-		slc := []int{0, 1, 2, 3}
-		for i, item := range slc {
-			So(i, ShouldEqual, item)
-			slc = append(slc[:0], slc[0+1:]...)
-		}
-	})
-}
-
 func selectByRepo(supps []suppression, repo string) *suppression {
 	for _, s := range supps {
 		if s.Repository.String() == repo {
