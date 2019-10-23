@@ -10,6 +10,13 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+type WebHook struct {
+	Enable  bool              `yaml:"enable"`
+	Method  string            `yaml:"method"`
+	URL     string            `yaml:"url"`
+	Headers map[string]string `yaml:"headers"`
+}
+
 type SMTP struct {
 	Enable       bool   `yaml:"enable"`
 	From         string `yaml:"mail_from"`
@@ -29,6 +36,7 @@ type Config struct {
 	Patterns []Pattern `yaml:"patterns"`
 	Filters  []Pattern `yaml:"filters"`
 	SMTP     *SMTP     `yaml:"smtp"`
+	WebHook  *WebHook  `yaml:"webhook"`
 }
 
 type Inspect struct {

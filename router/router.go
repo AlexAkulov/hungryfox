@@ -8,6 +8,7 @@ import (
 	"github.com/AlexAkulov/hungryfox/helpers"
 	"github.com/AlexAkulov/hungryfox/senders/email"
 	"github.com/AlexAkulov/hungryfox/senders/file"
+	"github.com/AlexAkulov/hungryfox/senders/webhook"
 
 	"github.com/rs/zerolog"
 	"gopkg.in/tomb.v2"
@@ -43,6 +44,15 @@ func (r *LeaksRouter) Start() error {
 			Log: r.Log,
 		}
 	}
+
+	if r.Config.WebHook.Enable {
+		r.senders["webhook"] = &webhook.Sender{
+			Method:  r.Config.WebHook.Method,
+			URL:     r.Config.WebHook.URL,
+			Headers: r.Config.WebHook.Headers,
+		}
+	}
+
 	r.senders["file"] = &file.File{
 		LeaksFile: r.Config.Common.LeaksFile,
 	}

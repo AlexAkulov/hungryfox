@@ -12,7 +12,7 @@ HungryFox differs from other solutions as it can work as a daemon and efficientl
 
 HungryFor works on regex-patterns only and does not use analyze by entropy because in my opinion this way generates a lot of false positive events. Maybe analyse by entropy will be added in future.
 
-It is hard to write a good enough regex-pattern that could simultaneously find all leaks and not to generate a lot of false positive events so HungryFox in addition with regex-patterns has regex-filters. You can write 
+It is hard to write a good enough regex-pattern that could simultaneously find all leaks and not to generate a lot of false positive events so HungryFox in addition with regex-patterns has regex-filters. You can write
 weak regex-pattern for search leaks and skip known false positive with the help of regex-filters.
 
 
@@ -61,6 +61,13 @@ smtp:
   disable_tls: true
   recipient: security@example.com
   sent_to_author: false
+
+webhook:
+  enable: true
+  method: POST
+  url: https://example.com/webhook
+  headers:
+    x-sample-header: value
 
 inspect:
   # Inspects for leaks in your local repositories without clone or fetch. It is suitable for running on git-server
