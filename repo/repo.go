@@ -265,29 +265,47 @@ func (r *Repo) fullRepoPath() string {
 	return filepath.Join(r.DataPath, r.RepoPath)
 }
 
+func (r *Repo) clone() error {
+	if err := os.MkdirAll(r.fullRepoPath(), 0755); err != nil {
+		return err
+	}
+	cloneOptions := &git.CloneOptions{
+		URL:        r.CloneURL,
+		NoCheckout: true,
+	}
+	repository, err := git.PlainClone(r.fullRepoPath(), false, cloneOptions)
+
+	if err != nil {
+		return err
+	}
+	r.repository = repository
+	return nil
+}
+
 func (r *Repo) Open() error {
 	if !r.AllowUpdate {
 		return r.open()
 	}
 	if _, err := os.Stat(r.fullRepoPath()); os.IsNotExist(err) {
-		if err := os.MkdirAll(r.fullRepoPath(), 0755); err != nil {
+		if err = r.clone(); err != nil {
 			return err
 		}
-		cloneOptions := &git.CloneOptions{
-			URL:        r.CloneURL,
-			NoCheckout: true,
-		}
-		repository, err := git.PlainClone(r.fullRepoPath(), false, cloneOptions)
-
-		if err != nil {
-			return err
-		}
-		r.repository = repository
-		return nil
 	}
 
 	if err := r.open(); err != nil {
-		return err
+		if err == git.ErrRepositoryNotExists {
+			if err := os.RemoveAll(r.fullRepoPath()); err != nil {
+				return err
+			}
+			if err = r.clone(); err != nil {
+				return err
+			}
+			if err := r.open(); err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
 	}
 
 	if err := r.repository.Fetch(&git.FetchOptions{Force: true}); err != nil && err != git.NoErrAlreadyUpToDate {
