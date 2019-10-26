@@ -17,6 +17,7 @@ type Config struct {
 	Patterns  []Pattern  `yaml:"patterns"`
 	Filters   []Pattern  `yaml:"filters"`
 	SMTP      *SMTP      `yaml:"smtp"`
+	WebHook   *WebHook   `yaml:"webhook"`
 	Exposures *Exposures `yaml:"exposures"`
 	Metrics   *Metrics   `yaml:"metrics"`
 }
@@ -33,6 +34,13 @@ type SMTP struct {
 	Delay          string `yaml:"delay"`
 	SentToAuthor   bool   `yaml:"sent_to_author"`
 	RecipientRegex string `yaml:"recipient_regex"`
+}
+
+type WebHook struct {
+	Enable  bool              `yaml:"enable"`
+	Method  string            `yaml:"method"`
+	URL     string            `yaml:"url"`
+	Headers map[string]string `yaml:"headers"`
 }
 
 type Inspect struct {
