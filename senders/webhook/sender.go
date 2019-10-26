@@ -23,6 +23,15 @@ func (self *Sender) Stop() error {
 	return nil
 }
 
+func (self *Sender) Accepts(item interface{}) bool {
+	switch item.(type) {
+	case hungryfox.Leak:
+		return true
+	default:
+		return false
+	}
+}
+
 func (self *Sender) Send(item interface{}) error {
 	leak, ok := item.(hungryfox.Leak)
 	if !ok {
