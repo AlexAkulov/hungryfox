@@ -6,7 +6,7 @@ import (
 	"github.com/AlexAkulov/hungryfox"
 	"github.com/AlexAkulov/hungryfox/config"
 	"github.com/AlexAkulov/hungryfox/helpers"
-	"github.com/AlexAkulov/hungryfox/hercules"
+	"github.com/AlexAkulov/hungryfox/repo"
 	"github.com/AlexAkulov/hungryfox/repolist"
 
 	"github.com/rs/zerolog"
@@ -49,6 +49,8 @@ func (sm *ScanManager) updateScanList() {
 			sm.inspectRepoPath(inspectObject)
 		case "github":
 			sm.inspectGithub(inspectObject)
+		case "gitlab":
+			sm.inspectGitlab(inspectObject)
 		default:
 			sm.Log.Error().Str("type", inspectObject.Type).Msg("unsupported type")
 		}
@@ -68,7 +70,7 @@ func (sm *ScanManager) Start(config *config.Config) error {
 		for {
 			select {
 			case <-sm.tomb.Dying():
-				return nil
+				return tomb.ErrDying
 			case <-updateTicker.C:
 				sm.updateScanList()
 			case <-scanTimer.C:
@@ -125,13 +127,18 @@ func (sm *ScanManager) ScanRepo(index int) {
 		URL:              r.Location.URL,
 		CloneURL:         r.Location.CloneURL,
 		AllowUpdate:      r.Options.AllowUpdate,
+		Log:              sm.Log,
 	}
 	r.Repo.SetRefs(r.State.Refs)
 	startScan := time.Now().UTC()
 	r.Scan.StartTime = startScan
 	sm.repoList.UpdateRepo(*r)
 
+	stopLoggingChan := make(chan struct{}, 1)
+	sm.tomb.Go(repoLogger(r, sm.Log, stopLoggingChan, sm.tomb.Dying()))
 	err := openScanClose(*r)
+	stopLoggingChan <- struct{}{}
+
 	r.State.Refs = r.Repo.GetRefs()
 	newR := hungryfox.Repo{
 		Location: r.Location,
@@ -153,10 +160,38 @@ func (sm *ScanManager) ScanRepo(index int) {
 	return
 }
 
-func openScanClose(r hungryfox.Repo) error {
+func openScanClose(r hungryfox.Repo) (err error) {
+	defer func() {
+		if e := recover(); e != nil {
+			err = e.(error)
+		}
+	}()
 	if err := r.Repo.Open(); err != nil {
 		return err
 	}
 	defer r.Repo.Close()
 	return r.Repo.Scan()
+}
+
+func repoLogger(r *hungryfox.Repo, log zerolog.Logger, stop <-chan struct{}, dying <-chan struct{}) func() error {
+	return func() error {
+		for {
+			select {
+			case <-dying:
+				return tomb.ErrDying
+			case <-stop:
+				{
+					progress := r.Repo.GetProgress()
+					log.Debug().Int("progress,%", progress).Str("repo", r.Location.URL).Msg("scan finished")
+					return nil
+				}
+			default:
+				{
+					progress := r.Repo.GetProgress()
+					log.Debug().Int("progress,%", progress).Str("repo", r.Location.URL).Msg("scanning repo")
+					time.Sleep(5 * time.Second)
+				}
+			}
+		}
+	}
 }

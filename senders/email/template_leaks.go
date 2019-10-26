@@ -1,6 +1,6 @@
 package email
 
-const defaultTemplate = `
+const leaksTemplate = `
 <!DOCTYPE html>
 <html>
 
@@ -122,7 +122,7 @@ const defaultTemplate = `
               <p>Кажется, мы нашли что-то похожее на пароль, токен или ключ.</p>
               <p>Как удалить пароль из репозитория написано <a href="https://help.github.com/articles/removing-sensitive-data-from-a-repository/" style="color: rgb(216, 119, 0);">тут</a>.</p>
               <p>Если это ошибка, ответь на это письмо чтобы мы добавили это в исключения.</p>
-              <p> Найдено {{ .LeaksCount }} утечек в {{ .FilesCount }} файлах.
+              <p> Найдено {{ .LeaksCount }} утечек в {{ .FilesCount }} файлах.</p>
             </td>
           </tr>
       </td>

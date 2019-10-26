@@ -1,9 +1,11 @@
 package helpers
 
 import (
+	"errors"
 	"testing"
 	"time"
 
+	"github.com/AlexAkulov/hungryfox"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -38,4 +40,97 @@ func TestParseDuration(t *testing.T) {
 		So(err, ShouldBeNil)
 		So(result, ShouldEqual, time.Duration(time.Hour*3+time.Minute*2+time.Second))
 	})
+}
+
+func TestToStringArray(t *testing.T) {
+	Convey("converts", t, func() {
+		mp := make(map[string]struct{})
+		mp["one"] = struct{}{}
+		mp["two"] = struct{}{}
+
+		arr := ToStringArray(mp)
+
+		So(arr, ShouldHaveLength, 2)
+		So(arr, ShouldContain, "one")
+		So(arr, ShouldContain, "two")
+	})
+}
+
+func TestRecoverTo(t *testing.T) {
+	panickyFunc := func() (e error) {
+		defer RecoverTo(&e)
+		panic(errors.New("much panic"))
+	}
+
+	Convey("recovers", t, func() {
+		So(func() { panickyFunc() }, ShouldNotPanic)
+	})
+	Convey("getsError", t, func() {
+		err := panickyFunc()
+
+		So(err, ShouldBeError, "much panic")
+	})
+}
+
+func TestChannelDuplication(t *testing.T) {
+	Convey("duplicates", t, func() {
+		ch := make(chan *hungryfox.Diff)
+		item := &hungryfox.Diff{}
+
+		ch1, ch2 := Duplicate(ch, 1)
+		ch <- item
+		a, b := <-ch1, <-ch2
+
+		So(a, ShouldEqual, item)
+		So(b, ShouldEqual, item)
+	})
+	Convey("closes channels", t, func() {
+		ch := make(chan *hungryfox.Diff)
+
+		ch1, ch2 := Duplicate(ch, 1)
+		close(ch)
+		_, ok1 := <-ch1
+		_, ok2 := <-ch2
+
+		So(ok1, ShouldBeFalse)
+		So(ok2, ShouldBeFalse)
+	})
+	Convey("Shouldn't block when buffer isn't filled", t, func() {
+		hasBlocked := duplicateChanAndWriteValues(3, 3)
+		So(hasBlocked, ShouldBeFalse)
+	})
+	Convey("May block on writing to ch1 when buffer fills", t, func() {
+		hasBlocked := duplicateChanAndWriteValues(3, 4)
+		So(hasBlocked, ShouldBeTrue)
+	})
+}
+
+func duplicateChanAndWriteValues(buffer, writesCount int) (hasBlocked bool) {
+	ch := make(chan *hungryfox.Diff)
+	timerCh := make(chan struct{})
+
+	_, ch2 := Duplicate(ch, buffer)
+
+	go func() {
+		item := &hungryfox.Diff{}
+		for i := 0; i < writesCount; i++ {
+			ch <- item
+		}
+		close(ch)
+	}()
+	go func() {
+		time.Sleep(300)
+		timerCh <- struct{}{}
+	}()
+
+	for {
+		select {
+		case _, ok := <-ch2:
+			if !ok {
+				return false
+			}
+		case <-timerCh:
+			return true
+		}
+	}
 }

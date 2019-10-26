@@ -2,7 +2,7 @@ package scanmanager
 
 import (
 	"github.com/AlexAkulov/hungryfox"
-	"github.com/AlexAkulov/hungryfox/hercules"
+	"github.com/AlexAkulov/hungryfox/repo"
 )
 
 func (sm *ScanManager) DryRun() {
@@ -11,7 +11,6 @@ func (sm *ScanManager) DryRun() {
 		r := sm.repoList.GetRepoByIndex(i)
 		if r == nil {
 			panic("bad index")
-			return
 		}
 		if err := sm.getState(r); err != nil {
 			sm.Log.Error().Str("error", err.Error()).

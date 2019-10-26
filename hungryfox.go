@@ -1,6 +1,10 @@
 package hungryfox
 
-import "time"
+import (
+	"time"
+
+	"github.com/package-url/packageurl-go"
+)
 
 type Diff struct {
 	CommitHash  string
@@ -26,7 +30,7 @@ type RepoLocation struct {
 }
 
 type RepoState struct {
-	Refs     []string
+	Refs []string
 }
 
 type ScanStatus struct {
@@ -36,24 +40,27 @@ type ScanStatus struct {
 }
 
 type Repo struct {
-	Options RepoOptions
+	Options  RepoOptions
 	Location RepoLocation
-	State RepoState
-	Scan ScanStatus
-	Repo IRepo
+	State    RepoState
+	Scan     ScanStatus
+	Repo     IRepo
+}
+
+type Dependency struct {
+	Purl packageurl.PackageURL
+	Diff
 }
 
 type IMessageSender interface {
 	Start() error
-	Send(Leak) error
+	Accepts(interface{}) bool
+	Send(interface{}) error
 	Stop() error
 }
 
-type ILeakSearcher interface {
-	Start() error
-	SetConfig() error
-	Search(Diff)
-	Stop() error
+type IDiffAnalyzer interface {
+	Analyze(*Diff)
 }
 
 type IRepo interface {
@@ -70,6 +77,10 @@ type IStateManager interface {
 	Save(Repo)
 }
 
+type IVulnerabilitySearcher interface {
+	Search([]Dependency) error
+}
+
 type Leak struct {
 	PatternName  string    `json:"pattern_name"`
 	Regexp       string    `json:"pattern"`
@@ -82,4 +93,31 @@ type Leak struct {
 	Line         int       `json:"line"`
 	CommitAuthor string    `json:"author"`
 	CommitEmail  string    `json:"email"`
+}
+
+type VulnerableDependency struct {
+	Vulnerabilities []Vulnerability `json:"vulnerabilities"`
+
+	DependencyName string    `json:"dep_name"`
+	Version        string    `json:"dep_version"`
+	FilePath       string    `json:"filepath"`
+	RepoPath       string    `json:"repo_path"`
+	RepoURL        string    `json:"repo_url"`
+	CommitHash     string    `json:"commit"`
+	TimeStamp      time.Time `json:"ts"`
+	CommitAuthor   string    `json:"author"`
+	CommitEmail    string    `json:"email"`
+}
+
+type Vulnerability struct {
+	Source        string   `json:"source"`
+	Id            string   `json:"id"`
+	Title         string   `json:"title"`
+	Description   string   `json:"description"`
+	CvssScore     float32  `json:"cvssScore"`
+	CvssVector    string   `json:"cvssVector"`
+	Cwe           string   `json:"cwe"`
+	Cve           string   `json:"cve"`
+	Reference     string   `json:"reference"`
+	VersionRanges []string `json:"versionRanges"`
 }

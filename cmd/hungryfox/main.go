@@ -11,6 +11,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/AlexAkulov/hungryfox/metrics"
+
 	"github.com/AlexAkulov/hungryfox"
 	"github.com/AlexAkulov/hungryfox/config"
 	"github.com/AlexAkulov/hungryfox/helpers"
@@ -44,25 +46,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	var lvl zerolog.Level
-	switch conf.Common.LogLevel {
-	case "debug":
-		lvl = zerolog.DebugLevel
-	case "info":
-		lvl = zerolog.InfoLevel
-	case "warn":
-		lvl = zerolog.WarnLevel
-	case "error":
-		lvl = zerolog.ErrorLevel
-	default:
-		fmt.Fprintf(os.Stderr, "Unknown log_level '%s'", conf.Common.LogLevel)
-		os.Exit(1)
-	}
-	// logger := zerolog.New(os.Stdout).Level(lvl).With().Timestamp().Logger()
-	logger := zerolog.New(os.Stdout).Level(lvl).With().Timestamp().Logger().Output(zerolog.ConsoleWriter{Out: os.Stdout})
+	logger := createLogger(conf.Logging)
+	metricsRepo := metrics.StartMetricsRepo(conf.Metrics, logger)
 
 	diffChannel := make(chan *hungryfox.Diff, 100)
 	leakChannel := make(chan *hungryfox.Leak, 1)
+	vulnsChannel := make(chan *hungryfox.VulnerableDependency, 1)
 
 	if *skipScan {
 		stateManager := &filestate.StateManager{
@@ -88,18 +77,18 @@ func main() {
 
 	logger.Debug().Str("service", "leaks router").Msg("start")
 	leakRouter := &router.LeaksRouter{
-		LeakChannel: leakChannel,
-		Config:      conf,
-		Log:         logger,
+		LeakChannel:  leakChannel,
+		VulnsChannel: vulnsChannel,
+		Config:       conf,
+		Log:          logger,
 	}
 	if err := leakRouter.Start(); err != nil {
 		logger.Error().Str("service", "leaks router").Str("error", err.Error()).Msg("fail")
 		os.Exit(1)
 	}
-	logger.Debug().Str("service", "leaks router").Msg("strated")
+	logger.Debug().Str("service", "leaks router").Msg("started")
 
-	logger.Debug().Str("service", "leaks searcher").Msg("start")
-
+	logger.Debug().Str("service", "analyzer dispatcher").Msg("start")
 	numCPUs := runtime.NumCPU() - 1
 	if numCPUs < 1 {
 		numCPUs = 1
@@ -107,13 +96,18 @@ func main() {
 	if conf.Common.Workers > 0 {
 		numCPUs = conf.Common.Workers
 	}
-	leakSearcher := &searcher.Searcher{
-		Workers:     numCPUs,
-		DiffChannel: diffChannel,
-		LeakChannel: leakChannel,
-		Log:         logger,
+	analyzerDispatcher := &searcher.AnalyzerDispatcher{
+		Workers:                numCPUs,
+		DiffChannel:            diffChannel,
+		LeakChannel:            leakChannel,
+		VulnerabilitiesChannel: vulnsChannel,
+		Log:                    logger,
+		Metrics: searcher.Metrics{
+			Leaks:           metricsRepo.CreateCounter("leaks.found"),
+			Vulnerabilities: metricsRepo.CreateCounter("vulnerabilities.found"),
+		},
 	}
-	if err := leakSearcher.Start(conf); err != nil {
+	if err := analyzerDispatcher.Start(conf); err != nil {
 		logger.Error().Str("service", "leaks searcher").Str("error", err.Error()).Msg("fail")
 		os.Exit(1)
 	}
@@ -147,7 +141,7 @@ func main() {
 		for range statusTicker.C {
 			r := scanManager.Status()
 			if r != nil {
-				l := leakSearcher.Status(r.Location.URL)
+				l := analyzerDispatcher.Status(r.Location.URL)
 				logger.Info().Int("leaks", l.LeaksFound).Int("leaks_filtred", l.LeaksFiltred).Str("duration", helpers.PrettyDuration(time.Since(r.Scan.StartTime))).Str("repo", r.Location.URL).Msg("scan")
 				continue
 			}
@@ -178,7 +172,7 @@ func main() {
 			logger.Error().Str("error", err.Error()).Msg("can't update config")
 			continue
 		}
-		leakSearcher.Update(newConf)
+		analyzerDispatcher.Update(newConf)
 		scanManager.SetConfig(newConf)
 		logger.Info().Msg("settings reloaded")
 	}
@@ -188,7 +182,7 @@ func main() {
 	}
 	logger.Debug().Str("service", "scan manager").Msg("stopped")
 
-	if err := leakSearcher.Stop(); err != nil {
+	if err := analyzerDispatcher.Stop(); err != nil {
 		logger.Error().Str("error", err.Error()).Str("service", "leak searcher").Msg("can't stop")
 	}
 	logger.Debug().Str("service", "leak searcher").Msg("stopped")
@@ -203,5 +197,37 @@ func main() {
 		logger.Error().Str("error", err.Error()).Str("service", "state manager").Msg("can't stop")
 	}
 
+	logger.Debug().Str("service", "metrics repository").Msg("stop")
+	if err := metricsRepo.Stop(); err != nil {
+		logger.Error().Str("error", err.Error()).Str("service", "metrics repository").Msg("can't stop")
+	}
+
 	logger.Info().Str("version", version).Msg("stopped")
+}
+
+func createLogger(conf *config.Logging) zerolog.Logger {
+	var lvl zerolog.Level
+	switch conf.Level {
+	case "debug":
+		lvl = zerolog.DebugLevel
+	case "info":
+		lvl = zerolog.InfoLevel
+	case "warn":
+		lvl = zerolog.WarnLevel
+	case "error":
+		lvl = zerolog.ErrorLevel
+	default:
+		fmt.Fprintf(os.Stderr, "Unknown logging level '%s'", conf.Level)
+		os.Exit(1)
+	}
+	if conf.File != "" {
+		writer, err := os.OpenFile(conf.File, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0666)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Cannot open log file '%s'", conf.File)
+			os.Exit(1)
+		}
+		return zerolog.New(writer).Level(lvl).With().Timestamp().Logger()
+	} else {
+		return zerolog.New(os.Stdout).Level(lvl).With().Timestamp().Logger().Output(zerolog.ConsoleWriter{Out: os.Stdout})
+	}
 }
