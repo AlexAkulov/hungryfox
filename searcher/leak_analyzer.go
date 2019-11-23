@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/AlexAkulov/hungryfox"
+	"github.com/AlexAkulov/hungryfox/entropy"
 	"github.com/rs/zerolog"
 )
 
@@ -21,7 +22,7 @@ type LeakAnalyzer struct {
 }
 
 func (a *LeakAnalyzer) Analyze(diff *hungryfox.Diff) {
-	leaks := getLeaks(diff, a.Matchers.patterns)
+	leaks := a.getLeaks(diff, a.Matchers.patterns)
 	filteredLeaks := 0
 	for i := range leaks {
 		if filterLeak(leaks[i], a.Matchers.filters) {
@@ -41,7 +42,7 @@ func (a *LeakAnalyzer) Analyze(diff *hungryfox.Diff) {
 	}
 }
 
-func getLeaks(diff *hungryfox.Diff, patterns []patternType) []hungryfox.Leak {
+func (a *LeakAnalyzer) getLeaks(diff *hungryfox.Diff, patterns []patternType) []hungryfox.Leak {
 	leaks := make([]hungryfox.Leak, 0)
 	lines := strings.Split(diff.Content, "\n")
 	for _, line := range lines {
@@ -51,6 +52,12 @@ func getLeaks(diff *hungryfox.Diff, patterns []patternType) []hungryfox.Leak {
 				continue
 			}
 			if pattern.ContentRe.MatchString(line) {
+				if pattern.Entropies != nil {
+					if hasLowEntropy(line, pattern.Entropies) {
+						a.Log.Debug().Str("leak", line[:100]).Msg("leak not matched because of low entropy")
+						continue
+					}
+				}
 				if len(line) > 1024 {
 					line = line[:1024]
 				}
@@ -70,6 +77,19 @@ func getLeaks(diff *hungryfox.Diff, patterns []patternType) []hungryfox.Leak {
 		}
 	}
 	return leaks
+}
+
+func hasLowEntropy(line string, entropies *entropyType) bool {
+	isLowWord, isLowLine := false, false
+	if entropies.WordMin > 0 {
+		wordEntropy := entropy.GetWordShannonEntropy(line)
+		isLowWord = wordEntropy < entropies.WordMin
+	}
+	if entropies.LineMin > 0 {
+		entropy := entropy.GetShannonEntropy(line)
+		isLowLine = entropy < entropies.LineMin
+	}
+	return isLowWord && isLowLine
 }
 
 func filterLeak(leak hungryfox.Leak, filters []patternType) bool {

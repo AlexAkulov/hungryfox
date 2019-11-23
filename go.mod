@@ -1,7 +1,7 @@
 module github.com/AlexAkulov/hungryfox
 
 require (
-	github.com/A1bemuth/deputy v0.0.0-20191008094122-04677ab0d0c4
+	github.com/A1bemuth/deputy v0.0.0-20191104083728-b28061fc42cd
 	github.com/A1bemuth/go-oss-index v0.0.0-20191009081345-39a725b12e97
 	github.com/VividCortex/gohistogram v1.0.0 // indirect
 	github.com/cznic/b v0.0.0-20181122101859-a26611c4d92d // indirect

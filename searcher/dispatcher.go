@@ -21,6 +21,12 @@ type patternType struct {
 	Name      string
 	ContentRe *regexp.Regexp
 	FileRe    *regexp.Regexp
+	Entropies *entropyType
+}
+
+type entropyType struct {
+	WordMin float64
+	LineMin float64
 }
 
 type Metrics struct {
@@ -211,6 +217,12 @@ func compilePatterns(configPatterns []config.Pattern) (result []patternType, err
 			Name:      configPattern.Name,
 			FileRe:    compileRegex(configPattern.File),
 			ContentRe: compileRegex(configPattern.Content),
+		}
+		if configPattern.Entropies != nil {
+			p.Entropies = &entropyType{
+				WordMin: configPattern.Entropies.WordMin,
+				LineMin: configPattern.Entropies.LineMin,
+			}
 		}
 		result = append(result, p)
 	}

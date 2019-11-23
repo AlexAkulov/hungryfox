@@ -82,9 +82,15 @@ type Logging struct {
 }
 
 type Pattern struct {
-	Name    string `yaml:"name"`
-	File    string `yaml:"file"`
-	Content string `yaml:"content"`
+	Name      string     `yaml:"name"`
+	File      string     `yaml:"file"`
+	Content   string     `yaml:"content"`
+	Entropies *Entropies `yaml:"entopies"`
+}
+
+type Entropies struct {
+	WordMin float64 `yaml:"word_min"`
+	LineMin float64 `yaml:"line_min"`
 }
 
 type Exposures struct {
