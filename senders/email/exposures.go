@@ -36,7 +36,7 @@ func (b *exposuresBatch) Add(item interface{}) {
 	b.Exposures = append(b.Exposures, dep)
 }
 
-func addOrAppend(repos map[string]*repoExposures, exp hungryfox.VulnerableDependency) {
+func addOrAppendExp(repos map[string]*repoExposures, exp hungryfox.VulnerableDependency) {
 	if repo, ok := repos[exp.RepoURL]; ok {
 		repo.Items = append(repo.Items, exp)
 	} else {
@@ -55,14 +55,14 @@ func (b *exposuresBatch) Fire(notifier muster.Notifier) {
 	allRepos := make(map[string]*repoExposures)
 	reposByAuthor := make(map[string]map[string]*repoExposures)
 	for _, exp := range b.Exposures {
-		addOrAppend(allRepos, exp)
+		addOrAppendExp(allRepos, exp)
 
 		if b.Sender.Config.SendToAuthor {
 			if repo, ok := reposByAuthor[exp.CommitEmail]; ok {
-				addOrAppend(repo, exp)
+				addOrAppendExp(repo, exp)
 			} else {
 				reposByAuthor[exp.CommitEmail] = make(map[string]*repoExposures)
-				addOrAppend(reposByAuthor[exp.CommitEmail], exp)
+				addOrAppendExp(reposByAuthor[exp.CommitEmail], exp)
 			}
 		}
 	}
