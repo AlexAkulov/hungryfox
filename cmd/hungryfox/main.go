@@ -21,6 +21,7 @@ import (
 	"github.com/AlexAkulov/hungryfox/searcher"
 	"github.com/AlexAkulov/hungryfox/state/filestate"
 
+	"github.com/natefinch/lumberjack"
 	"github.com/rs/zerolog"
 )
 
@@ -221,10 +222,11 @@ func createLogger(conf *config.Logging) zerolog.Logger {
 		os.Exit(1)
 	}
 	if conf.File != "" {
-		writer, err := os.OpenFile(conf.File, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0666)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Cannot open log file '%s'", conf.File)
-			os.Exit(1)
+		writer := &lumberjack.Logger{
+			Filename: conf.File,
+			MaxSize:  100, //MB
+			MaxAge:   1,   //d
+			Compress: true,
 		}
 		return zerolog.New(writer).Level(lvl).With().Timestamp().Logger()
 	} else {

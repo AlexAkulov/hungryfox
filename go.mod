@@ -30,6 +30,7 @@ require (
 	github.com/google/go-github v17.0.0+incompatible
 	github.com/gopherjs/gopherjs v0.0.0-20190411002643-bd77b112433e // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
+	github.com/natefinch/lumberjack v2.0.0+incompatible
 	github.com/package-url/packageurl-go v0.1.0
 	github.com/remyoudompheng/bigfft v0.0.0-20190321074620-2f0d2b0e0001 // indirect
 	github.com/rs/zerolog v1.14.3
