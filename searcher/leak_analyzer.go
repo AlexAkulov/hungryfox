@@ -54,7 +54,7 @@ func (a *LeakAnalyzer) getLeaks(diff *hungryfox.Diff, patterns []patternType) []
 			if pattern.ContentRe.MatchString(line) {
 				if pattern.Entropies != nil {
 					if hasLowEntropy(line, pattern.Entropies) {
-						a.Log.Debug().Str("leak", line[:100]).Msg("leak not matched because of low entropy")
+						a.Log.Debug().Str("leak", line).Msg("leak not matched because of low entropy")
 						continue
 					}
 				}
@@ -80,16 +80,19 @@ func (a *LeakAnalyzer) getLeaks(diff *hungryfox.Diff, patterns []patternType) []
 }
 
 func hasLowEntropy(line string, entropies *entropyType) bool {
-	isLowWord, isLowLine := false, false
 	if entropies.WordMin > 0 {
 		wordEntropy := entropy.GetWordShannonEntropy(line)
-		isLowWord = wordEntropy < entropies.WordMin
+		if wordEntropy >= entropies.WordMin {
+			return false
+		}
 	}
 	if entropies.LineMin > 0 {
 		entropy := entropy.GetShannonEntropy(line)
-		isLowLine = entropy < entropies.LineMin
+		if entropy >= entropies.LineMin {
+			return false
+		}
 	}
-	return isLowWord && isLowLine
+	return entropies.WordMin > 0 || entropies.LineMin > 0
 }
 
 func filterLeak(leak hungryfox.Leak, filters []patternType) bool {

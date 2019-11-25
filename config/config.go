@@ -85,7 +85,7 @@ type Pattern struct {
 	Name      string     `yaml:"name"`
 	File      string     `yaml:"file"`
 	Content   string     `yaml:"content"`
-	Entropies *Entropies `yaml:"entopies"`
+	Entropies *Entropies `yaml:"entropies"`
 }
 
 type Entropies struct {
@@ -115,6 +115,7 @@ func defaultConfig() *Config {
 		Metrics: &Metrics{
 			SendInterval: 10 * time.Second,
 		},
+		WebHook: &WebHook{},
 	}
 }
 
