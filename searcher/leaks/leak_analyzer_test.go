@@ -1,6 +1,7 @@
-package searcher
+package leaks
 
 import (
+	"github.com/AlexAkulov/hungryfox/searcher/matching"
 	"regexp"
 	"testing"
 
@@ -55,23 +56,23 @@ var expectedData = []hungryfox.Leak{
 func TestAnalyzeDiff(t *testing.T) {
 	Convey("Test GetLeaks", t, func() {
 		leakChannel := make(chan *hungryfox.Leak)
-		patterns := []patternType{
-			patternType{
+		patterns := []matching.PatternType{
+			matching.PatternType{
 				Name:      "pattern1",
 				ContentRe: regexp.MustCompile("secret"),
 				FileRe:    regexp.MustCompile("secret"),
 			},
-			patternType{
+			matching.PatternType{
 				Name:      "pattern2",
 				ContentRe: regexp.MustCompile("Password="),
-				FileRe:    matchAllRegex,
+				FileRe:    regexp.MustCompile(".+"),
 			},
 		}
 		leakAnalyzer := LeakAnalyzer{
 			Log:         zerolog.Nop(),
 			LeakChannel: leakChannel,
 			Matchers: &Matchers{
-				patterns: patterns,
+				Patterns: patterns,
 			},
 		}
 

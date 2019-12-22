@@ -1,9 +1,11 @@
-package searcher
+package vulnerabilities
 
 import (
 	ossindex "github.com/A1bemuth/go-oss-index"
 	osstypes "github.com/A1bemuth/go-oss-index/types"
 	"github.com/AlexAkulov/hungryfox"
+	"github.com/AlexAkulov/hungryfox/searcher/matching"
+	"github.com/AlexAkulov/hungryfox/searcher/stats"
 	"github.com/rs/zerolog"
 )
 
@@ -14,14 +16,14 @@ type Credentials struct {
 
 type VulnerabilitySearcher struct {
 	VulnerabilitiesChannel chan<- *hungryfox.VulnerableDependency
-	StatsChannel           chan<- statsDiff
+	StatsChannel           chan<- interface{}
 	Log                    zerolog.Logger
 
 	ossIndexClient ossindex.Client
-	suppressions   *[]suppression
+	suppressions   *[]matching.Suppression
 }
 
-func NewVulnsSearcher(vulnsChan chan<- *hungryfox.VulnerableDependency, log zerolog.Logger, ossCredentials Credentials, suppressions *[]suppression) *VulnerabilitySearcher {
+func NewVulnsSearcher(vulnsChan chan<- *hungryfox.VulnerableDependency, log zerolog.Logger, ossCredentials Credentials, suppressions *[]matching.Suppression) *VulnerabilitySearcher {
 	return &VulnerabilitySearcher{
 		VulnerabilitiesChannel: vulnsChan,
 		Log:                    log,
@@ -47,7 +49,7 @@ func (s *VulnerabilitySearcher) Search(deps []hungryfox.Dependency) error {
 			continue
 		}
 
-		vulns := getVulnerabilities(&report)
+		vulns := getOssVulnerabilities(&report)
 		found, suppressed := len(vulns), 0
 		if len(vulns) == 0 {
 			return nil
@@ -55,7 +57,7 @@ func (s *VulnerabilitySearcher) Search(deps []hungryfox.Dependency) error {
 		s.Log.Debug().Str("repo", dep.RepoURL).Str("file", dep.FilePath).Int("count", found).Msg("vulnerabilities found")
 
 		if s.suppressions != nil {
-			vulns = filterSuppressed(dep, vulns, *s.suppressions)
+			vulns = matching.FilterSuppressed(dep, vulns, *s.suppressions)
 			suppressed = found - len(vulns)
 			if suppressed > 0 {
 				s.Log.Debug().Str("repo", dep.RepoURL).Str("file", dep.FilePath).Int("count", suppressed).Msg("vulnerabilities suppressed")
@@ -66,11 +68,10 @@ func (s *VulnerabilitySearcher) Search(deps []hungryfox.Dependency) error {
 			s.VulnerabilitiesChannel <- toVulnerableDep(dep, vulns)
 		}
 		if found > 0 || suppressed > 0 {
-			s.StatsChannel <- statsDiff{
-				Kind:     VulnerabilityStat,
+			s.StatsChannel <- stats.VulnerabilityStatsDiff{
 				RepoURL:  dep.Diff.RepoURL,
 				Found:    found,
-				Filtered: suppressed,
+				Suppressed: suppressed,
 			}
 		}
 	}
@@ -104,7 +105,7 @@ func toVulnerableDep(dep *hungryfox.Dependency, vulns []hungryfox.Vulnerability)
 	}
 }
 
-func getVulnerabilities(report *osstypes.ComponentReport) (vulns []hungryfox.Vulnerability) {
+func getOssVulnerabilities(report *osstypes.ComponentReport) (vulns []hungryfox.Vulnerability) {
 	for _, vuln := range report.Vulnerabilities {
 		vulns = append(vulns, *toVulnerability(&vuln))
 	}

@@ -143,7 +143,7 @@ func main() {
 			r := scanManager.Status()
 			if r != nil {
 				l := analyzerDispatcher.Status(r.Location.URL)
-				logger.Info().Int("leaks", l.LeaksFound).Int("leaks_filtred", l.LeaksFiltred).Str("duration", helpers.PrettyDuration(time.Since(r.Scan.StartTime))).Str("repo", r.Location.URL).Msg("scan")
+				logger.Info().Int("leaks", l.LeaksFound).Int("leaks_filtred", l.LeaksFiltered).Str("duration", helpers.PrettyDuration(time.Since(r.Scan.StartTime))).Str("repo", r.Location.URL).Msg("scan")
 				continue
 			}
 		}

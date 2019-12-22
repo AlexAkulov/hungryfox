@@ -1,4 +1,4 @@
-package searcher
+package matching
 
 import (
 	"fmt"
@@ -11,7 +11,8 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-type suppression struct {
+
+type Suppression struct {
 	Repository *regexp.Regexp
 
 	DependencyName *regexp.Regexp
@@ -37,14 +38,14 @@ type suppressionDto struct {
 	Cve    string `yaml:"cve"`
 }
 
-func filterSuppressed(dep *Dependency, vulns []Vulnerability, suppressions []suppression) []Vulnerability {
+func FilterSuppressed(dep *Dependency, vulns []Vulnerability, suppressions []Suppression) []Vulnerability {
 	for _, s := range suppressions {
 		vulns = s.filter(dep, vulns)
 	}
 	return vulns
 }
 
-func (s *suppression) filter(dep *Dependency, vulns []Vulnerability) []Vulnerability {
+func (s *Suppression) filter(dep *Dependency, vulns []Vulnerability) []Vulnerability {
 	if !s.Repository.MatchString(dep.Diff.RepoURL) ||
 		!s.DependencyName.MatchString(dep.Purl.Name) ||
 		!s.Version.MatchString(dep.Purl.Version) ||
@@ -60,15 +61,15 @@ func (s *suppression) filter(dep *Dependency, vulns []Vulnerability) []Vulnerabi
 	return filtered
 }
 
-func (s *suppression) shouldSuppress(v *Vulnerability) bool {
+func (s *Suppression) shouldSuppress(v *Vulnerability) bool {
 	return s.Source.MatchString(v.Source) &&
 		s.Id.MatchString(v.Id) &&
 		s.Title.MatchString(v.Title) &&
 		s.Cve.MatchString(v.Cve)
 }
 
-func loadSuppressionsFromPath(path string) ([]suppression, error) {
-	results := []suppression{}
+func LoadSuppressionsFromPath(path string) ([]Suppression, error) {
+	results := []Suppression{}
 	files, err := filepath.Glob(path)
 	if err != nil {
 		return nil, err
@@ -83,7 +84,7 @@ func loadSuppressionsFromPath(path string) ([]suppression, error) {
 	return results, nil
 }
 
-func loadSuppressionsFromFile(file string) (s []suppression, err error) {
+func loadSuppressionsFromFile(file string) (s []Suppression, err error) {
 	defer helpers.RecoverTo(&err)
 
 	rawSuppressions := []suppressionDto{}
@@ -98,30 +99,20 @@ func loadSuppressionsFromFile(file string) (s []suppression, err error) {
 	return compileSuppressions(rawSuppressions), nil
 }
 
-func compileSuppressions(rawSuppressions []suppressionDto) []suppression {
-	suppressions := make([]suppression, len(rawSuppressions))
+func compileSuppressions(rawSuppressions []suppressionDto) []Suppression {
+	suppressions := make([]Suppression, len(rawSuppressions))
 	for i, rawSup := range rawSuppressions {
-		suppressions[i] = suppression{
-			Repository:     compileRegex(rawSup.Repository),
-			DependencyName: compileRegex(rawSup.DependencyName),
-			Version:        compileRegex(rawSup.Version),
-			FilePath:       compileRegex(rawSup.FilePath),
-			Source:         compileRegex(rawSup.Source),
-			Id:             compileRegex(rawSup.Id),
-			Title:          compileRegex(rawSup.Title),
-			Cve:            compileRegex(rawSup.Cve),
+		suppressions[i] = Suppression{
+			Repository:     CompileRegex(rawSup.Repository),
+			DependencyName: CompileRegex(rawSup.DependencyName),
+			Version:        CompileRegex(rawSup.Version),
+			FilePath:       CompileRegex(rawSup.FilePath),
+			Source:         CompileRegex(rawSup.Source),
+			Id:             CompileRegex(rawSup.Id),
+			Title:          CompileRegex(rawSup.Title),
+			Cve:            CompileRegex(rawSup.Cve),
 		}
 	}
 	return suppressions
 }
 
-func compileRegex(pattern string) *regexp.Regexp {
-	if pattern == "*" || pattern == "" {
-		return matchAllRegex
-	}
-	if regex, err := regexp.Compile(pattern); err != nil {
-		panic(fmt.Errorf("can't compile pattern file regexp '%s' with: %v", pattern, err))
-	} else {
-		return regex
-	}
-}

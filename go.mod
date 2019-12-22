@@ -3,6 +3,7 @@ module github.com/AlexAkulov/hungryfox
 require (
 	github.com/A1bemuth/deputy v0.0.0-20191104083728-b28061fc42cd
 	github.com/A1bemuth/go-oss-index v0.0.0-20191009081345-39a725b12e97
+	github.com/BurntSushi/toml v0.3.1 // indirect
 	github.com/VividCortex/gohistogram v1.0.0 // indirect
 	github.com/cznic/b v0.0.0-20181122101859-a26611c4d92d // indirect
 	github.com/cznic/fileutil v0.0.0-20181122101858-4d67cfea8c87 // indirect
@@ -46,6 +47,7 @@ require (
 	google.golang.org/appengine v1.5.0 // indirect
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
+	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
 	gopkg.in/src-d/go-billy.v4 v4.3.0 // indirect
 	gopkg.in/src-d/go-git-fixtures.v3 v3.5.0 // indirect
 	gopkg.in/src-d/go-git.v4 v4.11.0

@@ -2,32 +2,18 @@ package searcher
 
 import (
 	"fmt"
-	"io/ioutil"
-	"path/filepath"
-	"regexp"
-
 	. "github.com/AlexAkulov/hungryfox"
 	"github.com/AlexAkulov/hungryfox/config"
 	"github.com/AlexAkulov/hungryfox/helpers"
+	"github.com/AlexAkulov/hungryfox/searcher/leaks"
+	"github.com/AlexAkulov/hungryfox/searcher/matching"
+	"github.com/AlexAkulov/hungryfox/searcher/stats"
+	"github.com/AlexAkulov/hungryfox/searcher/vulnerabilities"
 	"github.com/go-kit/kit/metrics"
 	"github.com/rs/zerolog"
 	"gopkg.in/tomb.v2"
-	"gopkg.in/yaml.v2"
 )
 
-var matchAllRegex = regexp.MustCompile(".+")
-
-type patternType struct {
-	Name      string
-	ContentRe *regexp.Regexp
-	FileRe    *regexp.Regexp
-	Entropies *entropyType
-}
-
-type entropyType struct {
-	WordMin float64
-	LineMin float64
-}
 
 type Metrics struct {
 	Leaks           metrics.Counter
@@ -43,11 +29,11 @@ type AnalyzerDispatcher struct {
 	Metrics                Metrics
 
 	updateConfigChan chan<- *config.Config
-	updateStatsChan  chan statsDiff
+	updateStatsChan  chan interface{}
 	config           *config.Config
-	stats            map[string]RepoStats
-	leakMatchers     *Matchers
-	suppressions     *[]suppression
+	stats            map[string]stats.RepoStats
+	leakMatchers     *leaks.Matchers
+	suppressions     *[]matching.Suppression
 	tomb             tomb.Tomb
 }
 
@@ -65,8 +51,8 @@ func (d *AnalyzerDispatcher) Start(conf *config.Config) error {
 		return fmt.Errorf("workers count can't be less than 1")
 	}
 
-	d.stats = map[string]RepoStats{}
-	d.updateStatsChan = make(chan statsDiff)
+	d.stats = map[string]stats.RepoStats{}
+	d.updateStatsChan = make(chan interface{})
 	d.tomb.Go(d.statsUpdaterWorker)
 
 	leaksDiffChannel, depsDiffChannel := helpers.Duplicate(d.DiffChannel, 200)
@@ -83,11 +69,11 @@ func (d *AnalyzerDispatcher) Start(conf *config.Config) error {
 	return nil
 }
 
-func (d *AnalyzerDispatcher) Status(repoURL string) RepoStats {
+func (d *AnalyzerDispatcher) Status(repoURL string) stats.RepoStats {
 	if repoStats, ok := d.stats[repoURL]; ok {
 		return repoStats
 	}
-	return RepoStats{}
+	return stats.RepoStats{}
 }
 
 func (d *AnalyzerDispatcher) Stop() error {
@@ -97,7 +83,7 @@ func (d *AnalyzerDispatcher) Stop() error {
 
 func (d *AnalyzerDispatcher) makeLeakWorker(diffChannel <-chan *Diff) *Worker {
 	return &Worker{
-		Analyzer: &LeakAnalyzer{
+		Analyzer: &leaks.LeakAnalyzer{
 			LeakChannel:  d.LeakChannel,
 			Log:          d.Log,
 			Matchers:     d.leakMatchers,
@@ -121,13 +107,13 @@ func (d *AnalyzerDispatcher) makeDepsWorker(diffChannel <-chan *Diff, depsChanne
 	}
 }
 
-func (d *AnalyzerDispatcher) makeVulnsWorker(depsChannel <-chan *Dependency, vulnsChannel chan<- *VulnerableDependency) *VulnerabilitiesWorker {
-	ossCreds := Credentials{
+func (d *AnalyzerDispatcher) makeVulnsWorker(depsChannel <-chan *Dependency, vulnsChannel chan<- *VulnerableDependency) *vulnerabilities.VulnerabilitiesWorker {
+	ossCreds := vulnerabilities.Credentials{
 		User:     d.config.Exposures.OssIndexUser,
 		Password: d.config.Exposures.OssIndexPassword,
 	}
-	return &VulnerabilitiesWorker{
-		Searcher:    NewVulnsSearcher(vulnsChannel, d.Log, ossCreds, d.suppressions),
+	return &vulnerabilities.VulnerabilitiesWorker{
+		Searcher:    vulnerabilities.NewVulnsSearcher(vulnsChannel, d.Log, ossCreds, d.suppressions),
 		DepsChannel: depsChannel,
 		Log:         d.Log,
 		Dying:       d.tomb.Dying(),
@@ -135,18 +121,18 @@ func (d *AnalyzerDispatcher) makeVulnsWorker(depsChannel <-chan *Dependency, vul
 }
 
 func (d *AnalyzerDispatcher) updateConfig(conf *config.Config) error {
-	newCompiledPatterns, err := compilePatterns(conf.Patterns)
+	newCompiledPatterns, err := matching.CompilePatterns(conf.Patterns)
 	if err != nil {
 		return err
 	}
-	newCompiledFiltres, err := compilePatterns(conf.Filters)
+	newCompiledFiltres, err := matching.CompilePatterns(conf.Filters)
 	if err != nil {
 		return err
 	}
-	newSuppressions := []suppression{}
+	newSuppressions := []matching.Suppression{}
 
 	if conf.Common.PatternsPath != "" {
-		newFilePatterns, err := loadPatternsFromPath(conf.Common.PatternsPath)
+		newFilePatterns, err := matching.LoadPatternsFromPath(conf.Common.PatternsPath)
 		if err != nil {
 			return err
 		}
@@ -154,7 +140,7 @@ func (d *AnalyzerDispatcher) updateConfig(conf *config.Config) error {
 	}
 
 	if conf.Common.FiltresPath != "" {
-		newFileFilters, err := loadPatternsFromPath(conf.Common.FiltresPath)
+		newFileFilters, err := matching.LoadPatternsFromPath(conf.Common.FiltresPath)
 		if err != nil {
 			return err
 		}
@@ -162,13 +148,13 @@ func (d *AnalyzerDispatcher) updateConfig(conf *config.Config) error {
 	}
 
 	if conf.Common.SuppressionsPath != "" {
-		newSuppressions, err = loadSuppressionsFromPath(conf.Common.SuppressionsPath)
+		newSuppressions, err = matching.LoadSuppressionsFromPath(conf.Common.SuppressionsPath)
 		if err != nil {
 			return err
 		}
 	}
 
-	matchers := Matchers{patterns: newCompiledPatterns, filters: newCompiledFiltres}
+	matchers := leaks.Matchers{Patterns: newCompiledPatterns, Filters: newCompiledFiltres}
 	d.leakMatchers = &matchers
 	d.Log.Info().Int("patterns", len(newCompiledPatterns)).Int("filters", len(newCompiledFiltres)).Msg("loaded")
 	d.suppressions = &newSuppressions
@@ -177,54 +163,27 @@ func (d *AnalyzerDispatcher) updateConfig(conf *config.Config) error {
 	return nil
 }
 
-func loadPatternsFromPath(path string) ([]patternType, error) {
-	result := []patternType{}
-	files, err := filepath.Glob(path)
-	if err != nil {
-		return nil, err
-	}
-	for _, file := range files {
-		patterns, err := loadPatternsFromFile(file)
-		if err != nil {
-			return nil, err
-		}
-		result = append(result, patterns...)
-	}
-	return result, nil
-}
-
-func loadPatternsFromFile(file string) ([]patternType, error) {
-	rawPatterns := []config.Pattern{}
-	rawData, err := ioutil.ReadFile(file)
-	if err != nil {
-		return nil, fmt.Errorf("can't read file '%s' with: %v", file, err)
-	}
-	if err := yaml.Unmarshal(rawData, &rawPatterns); err != nil {
-		return nil, fmt.Errorf("can't parse file '%s' with: %v", file, err)
-	}
-	result, err := compilePatterns(rawPatterns)
-	if err != nil {
-		return nil, fmt.Errorf("can't compile file '%s' with: %v", file, err)
-	}
-	return result, nil
-}
-
-func compilePatterns(configPatterns []config.Pattern) (result []patternType, err error) {
+func (d *AnalyzerDispatcher) statsUpdaterWorker() (err error) {
 	defer helpers.RecoverTo(&err)
-
-	for _, configPattern := range configPatterns {
-		p := patternType{
-			Name:      configPattern.Name,
-			FileRe:    compileRegex(configPattern.File),
-			ContentRe: compileRegex(configPattern.Content),
-		}
-		if configPattern.Entropies != nil {
-			p.Entropies = &entropyType{
-				WordMin: configPattern.Entropies.WordMin,
-				LineMin: configPattern.Entropies.LineMin,
+	for {
+		someDiff := <-d.updateStatsChan
+		switch diff := someDiff.(type) {
+		case stats.LeakStatsDiff:
+			{
+				stats := d.stats[diff.RepoURL]
+				stats.LeaksFiltered += diff.Filtered
+				stats.LeaksFound += diff.Found
+				d.stats[diff.RepoURL] = stats
+				d.Metrics.Leaks.Add(float64(diff.Found))
+			}
+		case stats.VulnerabilityStatsDiff:
+			{
+				stats := d.stats[diff.RepoURL]
+				stats.VulnerabilitiesFound += diff.Found
+				stats.VulnerabilitiesSuppressed += diff.Suppressed
+				d.stats[diff.RepoURL] = stats
+				d.Metrics.Vulnerabilities.Add(float64(diff.Found))
 			}
 		}
-		result = append(result, p)
 	}
-	return result, nil
 }

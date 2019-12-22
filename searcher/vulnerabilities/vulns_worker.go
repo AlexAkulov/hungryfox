@@ -1,4 +1,4 @@
-package searcher
+package vulnerabilities
 
 import (
 	"time"
