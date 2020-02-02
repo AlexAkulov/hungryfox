@@ -6,29 +6,38 @@
 
 **State: In development now! You probably will get many bugs!**
 
-HungryFox is a software for continuous search for leaks of sensitive information like passwords, api-keys, private certificates and etc in your repositories.
+HungryFox is a continuous search tool. It scans git repositories for leaks of sensitive information like passwords, api-keys, private certificates, etc. As an experimental feature, hungryfox supports scanning dependencies and searching for related software vulnerabilities.
 
 HungryFox differs from other solutions as it can work as a daemon and efficiently scans each new commit in repo and sends notification about found leaks.
 
-HungryFor works on regex-patterns only and does not use analyze by entropy because in my opinion this way generates a lot of false positive events. Maybe analyse by entropy will be added in future.
-
-It is hard to write a good enough regex-pattern that could simultaneously find all leaks and not to generate a lot of false positive events so HungryFox in addition with regex-patterns has regex-filters. You can write
-weak regex-pattern for search leaks and skip known false positive with the help of regex-filters.
+HungryFox uses regex-patterns to search for vulnerabilities.
+ 
+It is hard to write a good enough regex-pattern that could simultaneously find all leaks without generating a lot of false positive events so HungryFox in addition to regex-patterns has regex-filters. You can write a weak regex-pattern for search leaks and skip known false positive with the help of regex-filters.
+Hungryfox also supports filtering false positives with minimum entropy requirements. Use Entropies.WordMin and Entropies.LineMin options in pattern configuration to filter out all leaks with lesser entropy. Word entropy is calculated as the largest Shannon entropy of words in a line, whereas line entropy is computed from the whole line. A leak is considered a false positive if it's less than both WordMin and LineMin. Experiments show that setting both to 3.0 safely cuts off some false positives. Higher values like 3.2, 3.5 filter much more false positives, but occasionally filter out real passwords.
 
 
 ## Features
 - [x] Patterns and filters
+- [x] Entropy filtering
 - [x] State support
 - [x] Notifications by email
 - [x] History limit by time
-- [x] GitHub-support
-- [ ] Written on pure go and no requirement of external git ([wait](https://github.com/src-d/go-git/issues/757))
+- [x] GitHub support
+- [x] Gitlab API support
+- [ ] Written in pure go, does not require external git ([wait](https://github.com/src-d/go-git/issues/757))
 - [ ] Line number of leak ([wait](https://github.com/src-d/go-git/issues/806))
+- [ ] Custom email templates
 - [ ] GitHook support
 - [ ] HTTP Api
 - [ ] WebUI
 - [ ] Tests
 - [ ] Integration with Hashicorp Vault
+
+**Experimental features:**
+- [x] Finding dependencies in .csproj files
+- [ ] Finding dependencies in NPM packages
+- [x] Searching for vulnerabilities in [OSS Index database](https://ossindex.sonatype.org/)
+- [ ] Searching for vulnerabilities in [NVD](https://nvd.nist.gov/)
 
 ## Installation
 
@@ -50,17 +59,26 @@ common:
   state_file: /var/lib/hungryfox/state.yml
   history_limit: 1y
   scan_interval: 30m
-  log_level: debug
+  workers: 4
   leaks_file: /var/lib/hungryfox/leaks.json
+  enable_leaks_scanner: true                    # true by default
+  enable_exposures_scanner: false               # false by default
+  
+logging:
+  level: debug
+  file: /var/lib/hungryfox/logs/log             # optional, log to rolling file, logs to console by default
 
 smtp:
   enable: true
   host: smtp.kontur
   port: 25
+  username: smtpUser
+  password: smtpPassword
   mail_from: hungryfox@example.com
   disable_tls: true
-  recipient: security@example.com
-  sent_to_author: false
+  recipient: security@example.com               # auditor's email, that receives all letters
+  sent_to_author: false                         # send leak and vulnerability letters to commit authors
+  recipient_regex: @yourorganization\.com$      # optinal, only send a letter, if the recipent's email matches
 
 webhook:
   enable: true
@@ -68,6 +86,12 @@ webhook:
   url: https://example.com/webhook
   headers:
     x-sample-header: value
+    
+exposures:
+  oss_index_user: foo
+  oss_index_password: bar
+  suppressions_path: /var/lib/hungryfox/settings/suppressions.json      # optional, suppressions for exposures scanner
+  exposures_file: /var/lib/hungryfox/exposures.json                     # writes exposures to this file
 
 inspect:
   # Inspects for leaks in your local repositories without clone or fetch. It is suitable for running on git-server
@@ -89,11 +113,25 @@ inspect:
       - moira-alert/moira
     orgs:
       - skbkontur
+  # Inspects for leaks on Gitlab. Uses Gitlab API to list projects, then scans matching repositories.
+  - type: gitlab
+    token: # required to access gitlab api
+    work_dir: "/var/hungryfox/gitlab"
+    gitlab_url: https://gitlab.org.com
+    gitlab_exclude_namespaces: # these project groups won't be scanned
+      - group1
+    gitlab_exclude_projects: # these projects won't be scanned
+      - project 1
+    gitlab_filter:  # a search string to pass to gitlab API when fetching projects list
+    gitlab_include_non_group: false # whether to scan private repositories
 
 patterns:
   - name: secret in my code                 # not required
     file: \.go$                             # .+ by default
     content: (?i)secret = ".+"              # .+ by default
+    entropies:                              # not required
+      word_min: 3.0                         # see above
+      line_min: 3.0
 
 filters:
   - name: skip any leaks in tests           # not required
