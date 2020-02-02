@@ -89,7 +89,7 @@ func main() {
 	}
 	logger.Debug().Str("service", "leaks router").Msg("started")
 
-	logger.Debug().Str("service", "analyzer dispatcher").Msg("start")
+	logger.Debug().Str("service", "searcher dispatcher").Msg("start")
 	numCPUs := runtime.NumCPU() - 1
 	if numCPUs < 1 {
 		numCPUs = 1
@@ -97,7 +97,7 @@ func main() {
 	if conf.Common.Workers > 0 {
 		numCPUs = conf.Common.Workers
 	}
-	analyzerDispatcher := &searcher.AnalyzerDispatcher{
+	searcherDispatcher := &searcher.SearcherDispatcher{
 		Workers:                numCPUs,
 		DiffChannel:            diffChannel,
 		LeakChannel:            leakChannel,
@@ -108,11 +108,11 @@ func main() {
 			Vulnerabilities: metricsRepo.CreateCounter("vulnerabilities.found"),
 		},
 	}
-	if err := analyzerDispatcher.Start(conf); err != nil {
-		logger.Error().Str("service", "leaks searcher").Str("error", err.Error()).Msg("fail")
+	if err := searcherDispatcher.Start(conf); err != nil {
+		logger.Error().Str("service", "searcher dispatcher").Str("error", err.Error()).Msg("fail")
 		os.Exit(1)
 	}
-	logger.Debug().Str("service", "leaks searcher").Int("workers", numCPUs).Msg("started")
+	logger.Debug().Str("service", "searcher dispatcher").Int("workers", numCPUs).Msg("started")
 
 	logger.Debug().Str("service", "state manager").Msg("start")
 	stateManager := &filestate.StateManager{
@@ -142,7 +142,7 @@ func main() {
 		for range statusTicker.C {
 			r := scanManager.Status()
 			if r != nil {
-				l := analyzerDispatcher.Status(r.Location.URL)
+				l := searcherDispatcher.Status(r.Location.URL)
 				logger.Info().Int("leaks", l.LeaksFound).Int("leaks_filtred", l.LeaksFiltered).Str("duration", helpers.PrettyDuration(time.Since(r.Scan.StartTime))).Str("repo", r.Location.URL).Msg("scan")
 				continue
 			}
@@ -173,7 +173,7 @@ func main() {
 			logger.Error().Str("error", err.Error()).Msg("can't update config")
 			continue
 		}
-		analyzerDispatcher.Update(newConf)
+		searcherDispatcher.Update(newConf)
 		scanManager.SetConfig(newConf)
 		logger.Info().Msg("settings reloaded")
 	}
@@ -183,7 +183,7 @@ func main() {
 	}
 	logger.Debug().Str("service", "scan manager").Msg("stopped")
 
-	if err := analyzerDispatcher.Stop(); err != nil {
+	if err := searcherDispatcher.Stop(); err != nil {
 		logger.Error().Str("error", err.Error()).Str("service", "leak searcher").Msg("can't stop")
 	}
 	logger.Debug().Str("service", "leak searcher").Msg("stopped")

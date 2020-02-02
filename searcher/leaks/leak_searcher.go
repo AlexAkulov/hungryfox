@@ -16,26 +16,26 @@ type Matchers struct {
 	Filters  []matching.PatternType
 }
 
-type LeakAnalyzer struct {
+type LeakSearcher struct {
 	LeakChannel  chan<- *hungryfox.Leak
 	StatsChannel chan<- interface{}
 	Matchers     *Matchers
 	Log          zerolog.Logger
 }
 
-func (a *LeakAnalyzer) Analyze(diff *hungryfox.Diff) {
-	leaks := a.getLeaks(diff, a.Matchers.Patterns)
+func (s *LeakSearcher) Process(diff *hungryfox.Diff) {
+	leaks := s.getLeaks(diff, s.Matchers.Patterns)
 	filteredLeaks := 0
 	for i := range leaks {
-		if filterLeak(leaks[i], a.Matchers.Filters) {
+		if filterLeak(leaks[i], s.Matchers.Filters) {
 			filteredLeaks++
 			continue
 		}
-		a.LeakChannel <- &leaks[i]
+		s.LeakChannel <- &leaks[i]
 	}
 	leaksCount := len(leaks) - filteredLeaks
 	if leaksCount > 0 || filteredLeaks > 0 {
-		a.StatsChannel <- stats.LeakStatsDiff{
+		s.StatsChannel <- stats.LeakStatsDiff{
 			RepoURL:  diff.RepoURL,
 			Found:    leaksCount,
 			Filtered: filteredLeaks,
@@ -43,7 +43,7 @@ func (a *LeakAnalyzer) Analyze(diff *hungryfox.Diff) {
 	}
 }
 
-func (a *LeakAnalyzer) getLeaks(diff *hungryfox.Diff, patterns []matching.PatternType) []hungryfox.Leak {
+func (s *LeakSearcher) getLeaks(diff *hungryfox.Diff, patterns []matching.PatternType) []hungryfox.Leak {
 	leaks := make([]hungryfox.Leak, 0)
 	lines := strings.Split(diff.Content, "\n")
 	for _, line := range lines {
@@ -55,7 +55,7 @@ func (a *LeakAnalyzer) getLeaks(diff *hungryfox.Diff, patterns []matching.Patter
 			if pattern.ContentRe.MatchString(line) {
 				if pattern.Entropies != nil {
 					if hasLowEntropy(line, pattern.Entropies) {
-						a.Log.Debug().Str("leak", line).Msg("leak not matched because of low entropy")
+						s.Log.Debug().Str("leak", line).Msg("leak not matched because of low entropy")
 						continue
 					}
 				}

@@ -59,10 +59,6 @@ type IMessageSender interface {
 	Stop() error
 }
 
-type IDiffAnalyzer interface {
-	Analyze(*Diff)
-}
-
 type IRepo interface {
 	Open() error
 	Close() error

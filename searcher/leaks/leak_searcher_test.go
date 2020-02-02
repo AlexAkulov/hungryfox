@@ -53,7 +53,7 @@ var expectedData = []hungryfox.Leak{
 	},
 }
 
-func TestAnalyzeDiff(t *testing.T) {
+func TestProcessDiff(t *testing.T) {
 	Convey("Test GetLeaks", t, func() {
 		leakChannel := make(chan *hungryfox.Leak)
 		patterns := []matching.PatternType{
@@ -68,7 +68,7 @@ func TestAnalyzeDiff(t *testing.T) {
 				FileRe:    regexp.MustCompile(".+"),
 			},
 		}
-		leakAnalyzer := LeakAnalyzer{
+		leakProcessor := LeakSearcher{
 			Log:         zerolog.Nop(),
 			LeakChannel: leakChannel,
 			Matchers: &Matchers{
@@ -76,7 +76,7 @@ func TestAnalyzeDiff(t *testing.T) {
 			},
 		}
 
-		go leakAnalyzer.Analyze(&testData)
+		go leakProcessor.Process(&testData)
 		var results []hungryfox.Leak
 		for i := 0; i < 2; i++ {
 			results = append(results, *<-leakChannel)

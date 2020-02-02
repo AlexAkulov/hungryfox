@@ -11,7 +11,6 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-
 type Suppression struct {
 	Repository *regexp.Regexp
 
@@ -40,12 +39,22 @@ type suppressionDto struct {
 
 func FilterSuppressed(dep *Dependency, vulns []Vulnerability, suppressions []Suppression) []Vulnerability {
 	for _, s := range suppressions {
-		vulns = s.filter(dep, vulns)
+		vulns = s.Filter(dep, vulns)
 	}
 	return vulns
 }
 
-func (s *Suppression) filter(dep *Dependency, vulns []Vulnerability) []Vulnerability {
+func (s *Suppression) IsMatch(dep *Dependency, vulnerability *Vulnerability) bool {
+	if !s.Repository.MatchString(dep.Diff.RepoURL) ||
+		!s.DependencyName.MatchString(dep.Purl.Name) ||
+		!s.Version.MatchString(dep.Purl.Version) ||
+		!s.FilePath.MatchString(dep.Diff.FilePath) {
+		return false
+	}
+	return s.shouldSuppress(vulnerability)
+}
+
+func (s *Suppression) Filter(dep *Dependency, vulns []Vulnerability) []Vulnerability {
 	if !s.Repository.MatchString(dep.Diff.RepoURL) ||
 		!s.DependencyName.MatchString(dep.Purl.Name) ||
 		!s.Version.MatchString(dep.Purl.Version) ||
@@ -115,4 +124,3 @@ func compileSuppressions(rawSuppressions []suppressionDto) []Suppression {
 	}
 	return suppressions
 }
-

@@ -14,13 +14,12 @@ import (
 	"gopkg.in/tomb.v2"
 )
 
-
 type Metrics struct {
 	Leaks           metrics.Counter
 	Vulnerabilities metrics.Counter
 }
 
-type AnalyzerDispatcher struct {
+type SearcherDispatcher struct {
 	Workers                int //TODO: separate workers config
 	DiffChannel            <-chan *Diff
 	LeakChannel            chan<- *Leak
@@ -37,11 +36,11 @@ type AnalyzerDispatcher struct {
 	tomb             tomb.Tomb
 }
 
-func (d *AnalyzerDispatcher) Update(conf *config.Config) {
+func (d *SearcherDispatcher) Update(conf *config.Config) {
 	d.tomb.Go(func() error { return d.updateConfig(conf) })
 }
 
-func (d *AnalyzerDispatcher) Start(conf *config.Config) error {
+func (d *SearcherDispatcher) Start(conf *config.Config) error {
 	if err := d.updateConfig(conf); err != nil {
 		return err
 	}
@@ -69,21 +68,21 @@ func (d *AnalyzerDispatcher) Start(conf *config.Config) error {
 	return nil
 }
 
-func (d *AnalyzerDispatcher) Status(repoURL string) stats.RepoStats {
+func (d *SearcherDispatcher) Status(repoURL string) stats.RepoStats {
 	if repoStats, ok := d.stats[repoURL]; ok {
 		return repoStats
 	}
 	return stats.RepoStats{}
 }
 
-func (d *AnalyzerDispatcher) Stop() error {
+func (d *SearcherDispatcher) Stop() error {
 	d.tomb.Kill(nil)
 	return d.tomb.Wait()
 }
 
-func (d *AnalyzerDispatcher) makeLeakWorker(diffChannel <-chan *Diff) *Worker {
+func (d *SearcherDispatcher) makeLeakWorker(diffChannel <-chan *Diff) *Worker {
 	return &Worker{
-		Analyzer: &leaks.LeakAnalyzer{
+		Searcher: &leaks.LeakSearcher{
 			LeakChannel:  d.LeakChannel,
 			Log:          d.Log,
 			Matchers:     d.leakMatchers,
@@ -95,9 +94,9 @@ func (d *AnalyzerDispatcher) makeLeakWorker(diffChannel <-chan *Diff) *Worker {
 	}
 }
 
-func (d *AnalyzerDispatcher) makeDepsWorker(diffChannel <-chan *Diff, depsChannel chan<- *Dependency) *Worker {
+func (d *SearcherDispatcher) makeDepsWorker(diffChannel <-chan *Diff, depsChannel chan<- *Dependency) *Worker {
 	return &Worker{
-		Analyzer: &DepsAnalyzer{
+		Searcher: &vulnerabilities.DepsSearcher{
 			DepsChannel: depsChannel,
 			Log:         d.Log,
 		},
@@ -107,7 +106,7 @@ func (d *AnalyzerDispatcher) makeDepsWorker(diffChannel <-chan *Diff, depsChanne
 	}
 }
 
-func (d *AnalyzerDispatcher) makeVulnsWorker(depsChannel <-chan *Dependency, vulnsChannel chan<- *VulnerableDependency) *vulnerabilities.VulnerabilitiesWorker {
+func (d *SearcherDispatcher) makeVulnsWorker(depsChannel <-chan *Dependency, vulnsChannel chan<- *VulnerableDependency) *vulnerabilities.VulnerabilitiesWorker {
 	ossCreds := vulnerabilities.Credentials{
 		User:     d.config.Exposures.OssIndexUser,
 		Password: d.config.Exposures.OssIndexPassword,
@@ -120,7 +119,7 @@ func (d *AnalyzerDispatcher) makeVulnsWorker(depsChannel <-chan *Dependency, vul
 	}
 }
 
-func (d *AnalyzerDispatcher) updateConfig(conf *config.Config) error {
+func (d *SearcherDispatcher) updateConfig(conf *config.Config) error {
 	newCompiledPatterns, err := matching.CompilePatterns(conf.Patterns)
 	if err != nil {
 		return err
@@ -163,7 +162,7 @@ func (d *AnalyzerDispatcher) updateConfig(conf *config.Config) error {
 	return nil
 }
 
-func (d *AnalyzerDispatcher) statsUpdaterWorker() (err error) {
+func (d *SearcherDispatcher) statsUpdaterWorker() (err error) {
 	defer helpers.RecoverTo(&err)
 	for {
 		someDiff := <-d.updateStatsChan

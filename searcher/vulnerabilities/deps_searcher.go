@@ -1,4 +1,4 @@
-package searcher
+package vulnerabilities
 
 import (
 	"github.com/A1bemuth/deputy"
@@ -8,14 +8,14 @@ import (
 	"github.com/rs/zerolog"
 )
 
-type DepsAnalyzer struct {
+type DepsSearcher struct {
 	DepsChannel chan<- *hungryfox.Dependency
 	Log         zerolog.Logger
 
 	parser deptypes.SelectiveParser
 }
 
-func (a DepsAnalyzer) Analyze(diff *hungryfox.Diff) {
+func (a DepsSearcher) Process(diff *hungryfox.Diff) {
 	if a.parser == nil {
 		a.parser = deputy.NewParser()
 	}
