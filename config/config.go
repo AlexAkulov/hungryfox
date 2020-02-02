@@ -66,7 +66,6 @@ type Common struct {
 	StateFile              string `yaml:"state_file"`
 	HistoryPastLimitString string `yaml:"history_limit"`
 	LeaksFile              string `yaml:"leaks_file"`
-	ExposuresFile          string `yaml:"exposures_file"`
 	ScanIntervalString     string `yaml:"scan_interval"`
 	PatternsPath           string `yaml:"patterns_path"`
 	FiltresPath            string `yaml:"filters_path"`
@@ -99,6 +98,7 @@ type Exposures struct {
 	OssIndexPassword string `yaml:"oss_index_password"`
 
 	SuppressionsPath string `yaml:"suppressions_path"`
+	ExposuresFile    string `yaml:"exposures_file"`
 }
 
 type Metrics struct {
