@@ -112,8 +112,7 @@ type Metrics struct {
 func defaultConfig() *Config {
 	return &Config{
 		Common: &Common{
-			EnableLeaksScanner:     true,
-			EnableExposuresScanner: true,
+			EnableLeaksScanner: true,
 		},
 		SMTP: &SMTP{
 			Delay: "5m",
