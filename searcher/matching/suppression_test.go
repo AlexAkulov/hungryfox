@@ -8,7 +8,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-const suppsFile = ".\\test\\suppressions.yml"
+const suppsFile = "./test/suppressions.yml"
 
 func TestLoadSuppressions(t *testing.T) {
 	Convey("Loads suppressions", t, func() {
