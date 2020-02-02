@@ -63,7 +63,7 @@ func (r *LeaksRouter) Start() error {
 
 	r.senders["file"] = &file.File{
 		LeaksFile: r.Config.Common.LeaksFile,
-		DepsFile:  r.Config.Common.VulnerabilitiesFile,
+		DepsFile:  r.Config.Common.ExposuresFile,
 	}
 
 	for senderName, sender := range r.senders {

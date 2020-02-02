@@ -66,12 +66,13 @@ type Common struct {
 	StateFile              string `yaml:"state_file"`
 	HistoryPastLimitString string `yaml:"history_limit"`
 	LeaksFile              string `yaml:"leaks_file"`
-	VulnerabilitiesFile    string `yaml:"vulnerabilities_file"`
+	ExposuresFile          string `yaml:"exposures_file"`
 	ScanIntervalString     string `yaml:"scan_interval"`
 	PatternsPath           string `yaml:"patterns_path"`
 	FiltresPath            string `yaml:"filters_path"`
-	SuppressionsPath       string `yaml:"suppressions_path"`
 	Workers                int    `yaml:"workers"`
+	EnableLeaksScanner     bool   `yaml:"enable_leaks_scanner"`
+	EnableExposuresScanner bool   `yaml:"enable_exposures_scanner"`
 	HistoryPastLimit       time.Time
 	ScanInterval           time.Duration
 }
@@ -96,6 +97,8 @@ type Entropies struct {
 type Exposures struct {
 	OssIndexUser     string `yaml:"oss_index_user"`
 	OssIndexPassword string `yaml:"oss_index_password"`
+
+	SuppressionsPath string `yaml:"suppressions_path"`
 }
 
 type Metrics struct {
@@ -108,6 +111,10 @@ type Metrics struct {
 
 func defaultConfig() *Config {
 	return &Config{
+		Common: &Common{
+			EnableLeaksScanner:     true,
+			EnableExposuresScanner: true,
+		},
 		SMTP: &SMTP{
 			Delay: "5m",
 		},

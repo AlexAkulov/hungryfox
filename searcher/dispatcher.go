@@ -54,16 +54,28 @@ func (d *SearcherDispatcher) Start(conf *config.Config) error {
 	d.updateStatsChan = make(chan interface{})
 	d.tomb.Go(d.statsUpdaterWorker)
 
-	leaksDiffChannel, depsDiffChannel := helpers.Duplicate(d.DiffChannel, 200)
-	depsChannel := make(chan *Dependency)
+	var (
+		leaksDiffChannel, depsDiffChannel <-chan (*Diff)
+		depsChannel                       chan *Dependency
+	)
+	if d.config.Common.EnableExposuresScanner {
+		leaksDiffChannel, depsDiffChannel = helpers.Duplicate(d.DiffChannel, 200)
+		depsChannel = make(chan *Dependency)
+	} else {
+		leaksDiffChannel = d.DiffChannel
+	}
 
 	for i := 0; i < d.Workers; i++ {
-		leaksWorker := d.makeLeakWorker(leaksDiffChannel)
-		d.tomb.Go(leaksWorker.Run)
-		depsWorker := d.makeDepsWorker(depsDiffChannel, depsChannel)
-		d.tomb.Go(depsWorker.Run)
-		vulnsWorker := d.makeVulnsWorker(depsChannel, d.VulnerabilitiesChannel)
-		d.tomb.Go(vulnsWorker.Run)
+		if d.config.Common.EnableLeaksScanner {
+			leaksWorker := d.makeLeakWorker(leaksDiffChannel)
+			d.tomb.Go(leaksWorker.Run)
+		}
+		if d.config.Common.EnableExposuresScanner {
+			depsWorker := d.makeDepsWorker(depsDiffChannel, depsChannel)
+			d.tomb.Go(depsWorker.Run)
+			vulnsWorker := d.makeVulnsWorker(depsChannel, d.VulnerabilitiesChannel)
+			d.tomb.Go(vulnsWorker.Run)
+		}
 	}
 	return nil
 }
@@ -146,8 +158,8 @@ func (d *SearcherDispatcher) updateConfig(conf *config.Config) error {
 		newCompiledFiltres = append(newCompiledFiltres, newFileFilters...)
 	}
 
-	if conf.Common.SuppressionsPath != "" {
-		newSuppressions, err = matching.LoadSuppressionsFromPath(conf.Common.SuppressionsPath)
+	if conf.Exposures.SuppressionsPath != "" {
+		newSuppressions, err = matching.LoadSuppressionsFromPath(conf.Exposures.SuppressionsPath)
 		if err != nil {
 			return err
 		}
