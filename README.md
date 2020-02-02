@@ -13,7 +13,8 @@ HungryFox differs from other solutions as it can work as a daemon and efficientl
 HungryFox uses regex-patterns to search for vulnerabilities.
  
 It is hard to write a good enough regex-pattern that could simultaneously find all leaks without generating a lot of false positive events so HungryFox in addition to regex-patterns has regex-filters. You can write a weak regex-pattern for search leaks and skip known false positive with the help of regex-filters.
-Hungryfox also supports filtering false positives with minimum entropy requirements. Use Entropies.WordMin and Entropies.LineMin options in pattern configuration to filter out all leaks with lesser entropy. Word entropy is calculated as the largest Shannon entropy of words in a line, whereas line entropy is computed from the whole line. A leak is considered a false positive if it's less than both WordMin and LineMin. Experiments show that setting both to 3.0 safely cuts off some false positives. Higher values like 3.2, 3.5 filter much more false positives, but occasionally filter out real passwords.
+
+Hungryfox also supports filtering false positives by entropy. Use Entropies.WordMin and Entropies.LineMin options in pattern configuration to filter out all leaks with lesser entropy. Word entropy is calculated as the largest Shannon entropy of words in a line, whereas line entropy is computed from the whole line. A leak is considered a false positive if it's less than both WordMin and LineMin. Experiments show that setting both to 3.0 safely cuts off some false positives. Higher values like 3.2, 3.5 filter much more false positives, but occasionally filter out real passwords.
 
 
 ## Features
@@ -53,7 +54,7 @@ go get github.com/AlexAkulov/hungryfox/cmd/hungryfox
 [![](https://img.shields.io/badge/rpm-packagecloud.io-844fec.svg)](https://packagecloud.io/AlexAkulov/hungryfox-unstable/install#bash-rpm)
 
 
-## Configuation
+## Configuration
 ```
 common:
   state_file: /var/lib/hungryfox/state.yml
